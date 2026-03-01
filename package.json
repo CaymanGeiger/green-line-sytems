@@ -4,14 +4,27 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "db:seed": "node --env-file=.env --import tsx scripts/seed.ts",
+    "sync:mock-events": "node --env-file=.env --import tsx scripts/sync-mock-events.ts",
+    "metrics:recompute": "node --env-file=.env --import tsx scripts/recompute-metrics.ts",
+    "db:backfill-simulated": "node --env-file=.env --import tsx scripts/backfill-simulated.ts"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.4.2",
+    "@prisma/client": "^7.4.2",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "jose": "^6.1.3",
     "next": "16.1.6",
+    "prisma": "^7.4.2",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,6 +34,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "node --env-file=.env --import tsx scripts/seed.ts"
   }
 }
