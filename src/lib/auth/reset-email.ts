@@ -21,7 +21,7 @@ export async function sendResetCodeEmail({ to, code }: SendResetEmailArgs) {
     body: JSON.stringify({
       from: fromEmail,
       to: [to],
-      subject: "Your DevOps Incident Command Center password reset code",
+      subject: "Your GreenLine Systems password reset code",
       html: `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a">
   <p>Use this code to reset your password:</p>
   <p style="font-size:28px;font-weight:700;letter-spacing:8px;margin:16px 0">${code}</p>

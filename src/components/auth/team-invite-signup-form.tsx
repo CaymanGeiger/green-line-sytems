@@ -138,7 +138,7 @@ export function TeamInviteSignUpForm({
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
         />
       </div>
       <div>
@@ -164,7 +164,7 @@ export function TeamInviteSignUpForm({
         />
       </div>
 
-      <div className="min-h-[12px]" aria-live="polite">
+      <div className="min-h-[20px]" aria-live="polite">
         {Array.isArray(error) ? (
           <ul className="list-disc space-y-1 pl-4 text-xs font-semibold text-rose-600">
             {error.map((issue) => (
@@ -176,12 +176,12 @@ export function TeamInviteSignUpForm({
         ) : null}
       </div>
 
-      <Button type="submit" block disabled={loading}>
-        {loading ? "Creating account..." : "Accept invite"}
+      <Button type="submit" block loading={loading} loadingText="Creating account...">
+        Accept invite
       </Button>
       <div className="text-sm text-slate-600">
         Already have an account?{" "}
-        <Link className="text-blue-700 hover:text-blue-800" href="/signin">
+        <Link className="text-green-700 hover:text-green-800" href="/signin">
           Sign in
         </Link>
       </div>

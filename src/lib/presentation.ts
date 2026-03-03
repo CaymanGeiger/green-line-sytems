@@ -1,4 +1,12 @@
-import type { AlertSeverity, IncidentSeverity, IncidentStatus, ServiceTier } from "@prisma/client";
+import type {
+  AlertSeverity,
+  AlertStatus,
+  DeployStatus,
+  ErrorLevel,
+  IncidentSeverity,
+  IncidentStatus,
+  ServiceTier,
+} from "@prisma/client";
 
 import { minutesBetween } from "@/lib/utils";
 
@@ -51,6 +59,32 @@ export function alertSeverityTone(severity: AlertSeverity): "critical" | "danger
   }
 }
 
+export function alertStatusTone(status: AlertStatus): "danger" | "warning" | "resolved" {
+  switch (status) {
+    case "TRIGGERED":
+      return "danger";
+    case "ACKED":
+      return "warning";
+    case "RESOLVED":
+      return "resolved";
+    default:
+      return "warning";
+  }
+}
+
+export function errorLevelTone(level: ErrorLevel): "critical" | "danger" | "warning" {
+  switch (level) {
+    case "FATAL":
+      return "critical";
+    case "ERROR":
+      return "danger";
+    case "WARNING":
+      return "warning";
+    default:
+      return "warning";
+  }
+}
+
 export function serviceTierTone(tier: ServiceTier): "critical" | "danger" | "warning" | "info" {
   switch (tier) {
     case "CRITICAL":
@@ -63,6 +97,20 @@ export function serviceTierTone(tier: ServiceTier): "critical" | "danger" | "war
       return "info";
     default:
       return "info";
+  }
+}
+
+export function deployStatusTone(status: DeployStatus): "success" | "warning" | "danger" {
+  switch (status) {
+    case "SUCCEEDED":
+      return "success";
+    case "FAILED":
+      return "danger";
+    case "STARTED":
+    case "ROLLED_BACK":
+      return "warning";
+    default:
+      return "warning";
   }
 }
 

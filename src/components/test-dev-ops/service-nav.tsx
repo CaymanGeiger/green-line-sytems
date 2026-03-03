@@ -20,7 +20,7 @@ export function ServiceNav({
         href={`/test-dev-ops/${teamId}`}
         className={`block rounded-lg px-3 py-2 text-sm font-semibold transition ${
           pathname === `/test-dev-ops/${teamId}`
-            ? "bg-blue-50 text-blue-700"
+            ? "border border-slate-200 bg-slate-100 text-slate-900"
             : "text-slate-700 hover:bg-slate-100"
         }`}
       >
@@ -35,7 +35,7 @@ export function ServiceNav({
             href={`/test-dev-ops/${teamId}/${service.id}`}
             className={`block rounded-lg border px-3 py-2 text-sm transition ${
               active
-                ? "border-blue-200 bg-blue-50 text-blue-700"
+                ? "border-slate-200 bg-slate-100 text-slate-900"
                 : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50"
             }`}
           >

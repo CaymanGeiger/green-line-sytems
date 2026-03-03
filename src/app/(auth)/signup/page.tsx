@@ -16,12 +16,12 @@ export default async function SignUpPage() {
       <div>
         <Link
           href="/signin"
-          className="inline-flex items-center pb-2 text-xs font-semibold text-slate-600 hover:text-blue-700"
+          className="inline-flex items-center pb-2 text-xs font-semibold text-slate-600 hover:text-green-700"
         >
           ← Return to sign in
         </Link>
         <h1 className="text-2xl font-semibold text-slate-900">Create account</h1>
-        <p className="mt-1 text-sm text-slate-600">Provision secure access to the incident command center.</p>
+        <p className="mt-1 text-sm text-slate-600">Provision secure access to GreenLine Systems.</p>
       </div>
       <SignUpForm />
     </div>

@@ -18,6 +18,12 @@ enum TeamMembershipRole {
   MEMBER
 }
 
+enum OrganizationMembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 enum PermissionResource {
   DASHBOARD
   INCIDENT
@@ -159,6 +165,7 @@ model User {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   sessions          Session[]
+  organizationMemberships OrganizationMembership[]
   teamMemberships   TeamMembership[]
   ownedServices     Service[]           @relation("ServiceOwner")
   createdIncidents  Incident[]          @relation("IncidentCreatedBy")
@@ -172,6 +179,8 @@ model User {
   savedViews        SavedView[]
   uiPreferences     UiPreference[]
   sentTeamInvites   TeamInvite[]        @relation("TeamInviteInvitedBy")
+  sentOrganizationInvites OrganizationInvite[] @relation("OrganizationInviteInvitedBy")
+  sentEmployeeAccessGrantInvites EmployeeAccessGrantInvite[] @relation("EmployeeAccessGrantInvitedBy")
   teamPermissions   TeamPermission[]
 }
 
@@ -188,12 +197,40 @@ model Session {
   @@index([expiresAt])
 }
 
+model Organization {
+  id          String                  @id @default(cuid())
+  name        String
+  slug        String                  @unique
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  teams       Team[]
+  memberships OrganizationMembership[]
+  invites     OrganizationInvite[]
+}
+
+model OrganizationMembership {
+  id             String                     @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMembershipRole @default(MEMBER)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
 model Team {
   id                     String                  @id @default(cuid())
+  organizationId         String
   name                   String
-  slug                   String                  @unique
+  slug                   String
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberships            TeamMembership[]
   services               Service[]
   incidents              Incident[]
@@ -201,6 +238,9 @@ model Team {
   integrationCredentials IntegrationCredential[]
   invites                TeamInvite[]
   permissions            TeamPermission[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
 }
 
 model TeamMembership {
@@ -574,4 +614,38 @@ model TeamInvite {
 
   @@index([teamId, email, consumedAt])
   @@index([email, expiresAt])
+}
+
+model OrganizationInvite {
+  id              String                     @id @default(cuid())
+  organizationId  String
+  email           String
+  role            OrganizationMembershipRole @default(MEMBER)
+  tokenHash       String                     @unique
+  invitedByUserId String
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  organization    Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedByUser   User                       @relation("OrganizationInviteInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, email, consumedAt])
+  @@index([email, expiresAt])
+}
+
+model EmployeeAccessGrantInvite {
+  id              String   @id @default(cuid())
+  email           String
+  tokenHash       String   @unique
+  invitedByUserId String
+  assignmentsJson Json
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  invitedByUser   User     @relation("EmployeeAccessGrantInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([email, expiresAt])
+  @@index([invitedByUserId, consumedAt])
 }

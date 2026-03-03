@@ -148,11 +148,11 @@ export function PasswordForm() {
         ) : error ? (
           <p className="text-xs font-semibold text-rose-600">{error}</p>
         ) : success ? (
-          <p className="text-xs font-semibold text-emerald-600">{success}</p>
+          <p className="text-xs font-semibold text-green-600">{success}</p>
         ) : null}
       </div>
-      <Button type="submit" disabled={loading}>
-        {loading ? "Saving..." : "Update password"}
+      <Button type="submit" loading={loading} loadingText="Saving..." className="h-10 px-4 text-sm">
+        Update password
       </Button>
     </form>
   );

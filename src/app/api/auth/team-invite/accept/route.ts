@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { enforceMutationProtection, jsonError } from "@/lib/api";
+import {
+  findActiveOrganizationInviteByRawToken,
+  hashOrganizationInviteToken,
+} from "@/lib/auth/organization-invite";
 import { hashPassword, validatePasswordPolicy } from "@/lib/auth/password";
 import { checkRateLimit, getClientIp } from "@/lib/auth/rate-limit";
-import { findActiveInviteByRawToken, hashTeamInviteToken } from "@/lib/auth/team-invite";
 import { attachSessionCookie, createSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { teamInviteAcceptSchema } from "@/lib/validation";
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
       return jsonError("Too many requests", 429);
     }
 
-    const invite = await findActiveInviteByRawToken(parsed.data.token);
+    const invite = await findActiveOrganizationInviteByRawToken(parsed.data.token);
     if (!invite) {
       return jsonError("Invite is invalid or expired", 400);
     }
@@ -66,10 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(parsed.data.password);
-    const tokenHash = hashTeamInviteToken(parsed.data.token);
+    const tokenHash = hashOrganizationInviteToken(parsed.data.token);
 
     const user = await prisma.$transaction(async (tx) => {
-      const inviteStillActive = await tx.teamInvite.findFirst({
+      const inviteStillActive = await tx.organizationInvite.findFirst({
         where: {
           id: invite.id,
           tokenHash,
@@ -82,7 +85,20 @@ export async function POST(request: NextRequest) {
           id: true,
           email: true,
           role: true,
-          teamId: true,
+          organizationId: true,
+          organization: {
+            select: {
+              teams: {
+                orderBy: {
+                  name: "asc",
+                },
+                select: {
+                  id: true,
+                },
+                take: 1,
+              },
+            },
+          },
         },
       });
 
@@ -104,16 +120,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      await tx.teamMembership.upsert({
+      await tx.organizationMembership.upsert({
         where: {
-          userId_teamId: {
+          userId_organizationId: {
             userId: created.id,
-            teamId: inviteStillActive.teamId,
+            organizationId: inviteStillActive.organizationId,
           },
         },
         create: {
           userId: created.id,
-          teamId: inviteStillActive.teamId,
+          organizationId: inviteStillActive.organizationId,
           role: inviteStillActive.role,
         },
         update: {
@@ -121,7 +137,25 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      await tx.teamInvite.update({
+      const defaultTeamId = inviteStillActive.organization.teams[0]?.id ?? null;
+      if (defaultTeamId) {
+        await tx.teamMembership.upsert({
+          where: {
+            userId_teamId: {
+              userId: created.id,
+              teamId: defaultTeamId,
+            },
+          },
+          create: {
+            userId: created.id,
+            teamId: defaultTeamId,
+            role: "MEMBER",
+          },
+          update: {},
+        });
+      }
+
+      await tx.organizationInvite.update({
         where: {
           id: inviteStillActive.id,
         },

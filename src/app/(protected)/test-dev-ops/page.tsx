@@ -16,7 +16,7 @@ export default async function TestDevOpsLandingPage() {
   return (
     <div className="space-y-6">
       <Card
-        title="DevOps Failure Simulator"
+        title="GreenLine Systems Failure Simulator"
         subtitle="Pick a team, enter a realistic multi-service sandbox, and intentionally trigger reliability events."
       >
         {scopedTeams.length === 0 ? (

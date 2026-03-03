@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
-
+import { AppSelect } from "@/components/ui/app-select";
 import { Button } from "@/components/ui/button";
+import { useCreateIncidentForm } from "@/hooks/use-create-incident-form";
 
 type TeamOption = { id: string; name: string };
 type ServiceOption = { id: string; name: string; teamId: string };
@@ -16,75 +15,35 @@ type Props = {
 };
 
 export function CreateIncidentForm({ teams, services, users }: Props) {
-  const router = useRouter();
-  const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
-  const [serviceId, setServiceId] = useState("");
-  const [title, setTitle] = useState("");
-  const [severity, setSeverity] = useState("SEV2");
-  const [summary, setSummary] = useState("");
-  const [impact, setImpact] = useState("");
-  const [commanderUserId, setCommanderUserId] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const filteredServices = useMemo(
-    () => services.filter((service) => !teamId || service.teamId === teamId),
-    [services, teamId],
-  );
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/incidents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          teamId,
-          serviceId: serviceId || null,
-          title,
-          severity,
-          summary: summary || null,
-          impact: impact || null,
-          commanderUserId: commanderUserId || null,
-        }),
-      });
-
-      const body = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setError(body.error ?? "Unable to create incident");
-        return;
-      }
-
-      setTitle("");
-      setSummary("");
-      setImpact("");
-      setServiceId("");
-      setCommanderUserId("");
-      router.refresh();
-    } catch {
-      setError("Unable to create incident");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    teamId,
+    serviceId,
+    title,
+    severity,
+    summary,
+    impact,
+    commanderUserId,
+    error,
+    loading,
+    filteredServices,
+    onSubmit,
+    onTeamChange,
+    setServiceId,
+    setTitle,
+    setSeverity,
+    setSummary,
+    setImpact,
+    setCommanderUserId,
+  } = useCreateIncidentForm({ teams, services });
 
   return (
     <form className="grid gap-3 md:grid-cols-2" onSubmit={onSubmit}>
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Team
-        <select
+        <AppSelect
           required
           value={teamId}
-          onChange={(event) => {
-            setTeamId(event.target.value);
-            setServiceId("");
-          }}
+          onChange={(event) => onTeamChange(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
         >
           {teams.map((team) => (
@@ -92,12 +51,12 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
               {team.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Service
-        <select
+        <AppSelect
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
@@ -108,7 +67,7 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
               {service.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="md:col-span-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -124,7 +83,7 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Severity
-        <select
+        <AppSelect
           value={severity}
           onChange={(event) => setSeverity(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
@@ -133,12 +92,12 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
           <option value="SEV2">SEV2</option>
           <option value="SEV3">SEV3</option>
           <option value="SEV4">SEV4</option>
-        </select>
+        </AppSelect>
       </label>
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Commander
-        <select
+        <AppSelect
           value={commanderUserId}
           onChange={(event) => setCommanderUserId(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
@@ -149,7 +108,7 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
               {user.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -175,8 +134,8 @@ export function CreateIncidentForm({ teams, services, users }: Props) {
       {error ? <p className="md:col-span-2 text-sm text-rose-600">{error}</p> : null}
 
       <div className="md:col-span-2 flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create incident"}
+        <Button type="submit" loading={loading} loadingText="Creating...">
+          Create incident
         </Button>
       </div>
     </form>

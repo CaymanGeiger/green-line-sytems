@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { CreateRunbookForm } from "@/components/runbooks/create-runbook-form";
 import { AccordionCard } from "@/components/ui/accordion-card";
@@ -110,7 +111,7 @@ export default async function RunbooksPage({
           >
             {activeTeam.name}
           </p>
-          <select
+          <AppSelect
             name="serviceId"
             defaultValue={serviceId ?? ""}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -121,7 +122,7 @@ export default async function RunbooksPage({
                 {service.name}
               </option>
             ))}
-          </select>
+          </AppSelect>
           <input
             name="tag"
             defaultValue={tag ?? ""}
@@ -148,32 +149,32 @@ export default async function RunbooksPage({
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
-                  <th className="pb-2">Runbook</th>
-                  <th className="pb-2">Team</th>
-                  <th className="pb-2">Service</th>
-                  <th className="pb-2">Version</th>
-                  <th className="pb-2">State</th>
-                  <th className="pb-2">Updated</th>
+                  <th className="px-3 pb-2 md:px-4">Runbook</th>
+                  <th className="px-3 pb-2 md:px-4">Team</th>
+                  <th className="px-3 pb-2 md:px-4">Service</th>
+                  <th className="px-3 pb-2 md:px-4">Version</th>
+                  <th className="px-3 pb-2 md:px-4">State</th>
+                  <th className="px-3 pb-2 md:px-4">Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {runbooks.map((runbook) => (
                   <tr key={runbook.id} className="border-b border-slate-100 last:border-none">
-                    <td className="py-3">
-                      <Link className="font-semibold text-blue-700 hover:text-blue-800" href={`/runbooks/${runbook.id}`}>
+                    <td className="px-3 py-3 md:px-4">
+                      <Link className="font-semibold text-green-700 hover:text-green-800" href={`/runbooks/${runbook.id}`}>
                         {runbook.title}
                       </Link>
                       <p className="text-xs text-slate-500">{runbook.slug}</p>
                     </td>
-                    <td className="py-3">{runbook.team.name}</td>
-                    <td className="py-3">{runbook.service?.name ?? "Team-level"}</td>
-                    <td className="py-3">v{runbook.version}</td>
-                    <td className="py-3">
+                    <td className="px-3 py-3 md:px-4">{runbook.team.name}</td>
+                    <td className="px-3 py-3 md:px-4">{runbook.service?.name ?? "Team-level"}</td>
+                    <td className="px-3 py-3 md:px-4">v{runbook.version}</td>
+                    <td className="px-3 py-3 md:px-4">
                       <Badge tone={runbook.isActive ? "success" : "neutral"}>
                         {runbook.isActive ? "ACTIVE" : "INACTIVE"}
                       </Badge>
                     </td>
-                    <td className="py-3 text-xs text-slate-600">{formatDateTime(runbook.updatedAt)}</td>
+                    <td className="px-3 py-3 text-xs text-slate-600 md:px-4">{formatDateTime(runbook.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>

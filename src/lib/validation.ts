@@ -8,6 +8,7 @@ export const signInSchema = z.object({
 export const signUpSchema = z.object({
   email: z.string().email(),
   name: z.string().trim().min(2).max(80),
+  accountType: z.enum(["OWNER", "EMPLOYEE"]).default("OWNER"),
   password: z.string().min(8).max(128),
   confirmPassword: z.string().min(8).max(128),
 });
@@ -44,11 +45,13 @@ export const uiPreferenceUpdateSchema = z.object({
 
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2).max(80),
+  organizationId: z.string().cuid().optional().nullable(),
+  organizationName: z.string().trim().min(2).max(80).optional().nullable(),
 });
 
 export const teamMemberAddSchema = z.object({
-  email: z.string().trim().email(),
-  role: z.enum(["OWNER", "MEMBER"]).default("MEMBER"),
+  userId: z.string().cuid(),
+  role: z.enum(["OWNER", "MEMBER", "ADMIN"]).default("MEMBER"),
 });
 
 export const teamMemberRemoveSchema = z
@@ -59,6 +62,48 @@ export const teamMemberRemoveSchema = z
   .refine((value) => Boolean(value.userId) !== Boolean(value.inviteId), {
     message: "Provide exactly one of userId or inviteId.",
   });
+
+export const organizationUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+});
+
+export const organizationCreateSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+});
+
+export const organizationMemberAddSchema = z.object({
+  email: z.string().trim().email(),
+  role: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
+});
+
+export const organizationMemberRemoveSchema = z
+  .object({
+    userId: z.string().cuid().optional(),
+    inviteId: z.string().cuid().optional(),
+  })
+  .refine((value) => Boolean(value.userId) !== Boolean(value.inviteId), {
+    message: "Provide exactly one of userId or inviteId.",
+  });
+
+export const employeeAccessLinkResolveSchema = z.object({
+  link: z.string().trim().min(16).max(4096),
+});
+
+const employeeAccessOrganizationAssignmentSchema = z.object({
+  organizationId: z.string().cuid(),
+  role: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
+});
+
+const employeeAccessTeamAssignmentSchema = z.object({
+  teamId: z.string().cuid(),
+  role: z.enum(["MEMBER", "ADMIN"]).default("MEMBER"),
+});
+
+export const employeeAccessIssueSchema = z.object({
+  link: z.string().trim().min(16).max(4096),
+  organizations: z.array(employeeAccessOrganizationAssignmentSchema).min(1).max(25),
+  teams: z.array(employeeAccessTeamAssignmentSchema).max(250).default([]),
+});
 
 const permissionResourceSchema = z.enum([
   "DASHBOARD",
@@ -94,10 +139,29 @@ export const teamInviteAcceptSchema = z.object({
   confirmPassword: z.string().min(8).max(128),
 });
 
+export const teamInviteVerifyExistingSchema = z.object({
+  token: z.string().trim().min(32).max(256),
+});
+
 export const updatePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8).max(128),
   confirmPassword: z.string().min(8).max(128),
+});
+
+export const deleteAccountSchema = z.object({
+  mode: z.enum(["TRANSFER", "FULL_DELETE"]),
+  currentPassword: z.string().min(1),
+  confirmation: z.string().trim().min(1).max(64),
+  transferAssignments: z
+    .array(
+      z.object({
+        organizationId: z.string().cuid(),
+        replacementUserId: z.string().cuid(),
+      }),
+    )
+    .max(100)
+    .optional(),
 });
 
 export const incidentCreateSchema = z.object({

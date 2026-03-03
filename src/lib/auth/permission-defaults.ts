@@ -10,41 +10,24 @@ export const MEMBER_DEFAULT_PERMISSION_MAP: Partial<
   },
   INCIDENT: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
   },
   SERVICE: {
     VIEW: true,
   },
   RUNBOOK: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
-    DELETE: true,
   },
   POSTMORTEM: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
-    DELETE: true,
   },
   ACTION_ITEM: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
-    DELETE: true,
   },
   SAVED_VIEW: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
-    DELETE: true,
   },
   SIMULATOR: {
     VIEW: true,
-    CREATE: true,
-    UPDATE: true,
-    DELETE: true,
   },
   TEAM: {
     VIEW: true,
@@ -53,10 +36,7 @@ export const MEMBER_DEFAULT_PERMISSION_MAP: Partial<
     VIEW: true,
   },
   TEAM_PERMISSION: {
-    VIEW: false,
-    CREATE: false,
-    UPDATE: false,
-    DELETE: false,
+    VIEW: true,
   },
 };
 

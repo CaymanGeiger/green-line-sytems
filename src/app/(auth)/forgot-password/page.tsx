@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
         <p className="mt-1 text-sm text-slate-600">Request a one-time code and securely reset account credentials.</p>
       </div>
       <ForgotPasswordForm />
-      <Link href="/signin" className="text-sm text-blue-700 hover:text-blue-800">
+      <Link href="/signin" className="text-sm text-green-700 hover:text-green-800">
         Back to sign in
       </Link>
     </div>

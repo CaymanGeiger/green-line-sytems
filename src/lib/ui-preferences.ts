@@ -3,7 +3,12 @@ export const UI_PREFERENCE_KEY_PATTERN = /^[a-zA-Z0-9:/_-]+$/;
 
 export function normalizeAccordionPreferenceKey(pathname: string, key: string): string {
   const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, "-");
+  const normalizedKey = key
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9:/_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
   const composite = `accordion:${normalizedPath}:${normalizedKey}`;
 
   if (composite.length > UI_PREFERENCE_KEY_MAX_LENGTH) {

@@ -7,7 +7,13 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 
-export function SignInForm({ notice }: { notice?: string | null } = {}) {
+export function SignInForm({
+  notice,
+  noticeTone = "success",
+}: {
+  notice?: string | null;
+  noticeTone?: "success" | "warning";
+} = {}) {
   const router = useRouter();
   const [email, setEmail] = useState("admin@demo.dev");
   const [password, setPassword] = useState("password");
@@ -58,7 +64,7 @@ export function SignInForm({ notice }: { notice?: string | null } = {}) {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
         />
       </div>
       <div>
@@ -68,19 +74,27 @@ export function SignInForm({ notice }: { notice?: string | null } = {}) {
         <PasswordInput id="password" required value={password} onChange={(event) => setPassword(event.target.value)} />
       </div>
       {notice ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>
+        <p
+          className={`rounded-lg border px-3 py-2 text-sm ${
+            noticeTone === "warning"
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-green-200 bg-green-50 text-green-700"
+          }`}
+        >
+          {notice}
+        </p>
       ) : null}
-      <div className="min-h-[12px]" aria-live="polite">
+      <div className="min-h-[20px]" aria-live="polite">
         {error ? <p className="text-xs font-semibold text-rose-600">{error}</p> : null}
       </div>
-      <Button type="submit" block disabled={loading}>
-        {loading ? "Signing In..." : "Sign In"}
+      <Button type="submit" block loading={loading} loadingText="Signing In...">
+        Sign In
       </Button>
       <div className="flex justify-between text-sm text-slate-600">
-        <Link className="text-blue-700 hover:text-blue-800" href="/signup">
+        <Link className="text-green-700 hover:text-green-800" href="/signup">
           Create account
         </Link>
-        <Link className="text-blue-700 hover:text-blue-800" href="/forgot-password">
+        <Link className="text-green-700 hover:text-green-800" href="/forgot-password">
           Forgot password
         </Link>
       </div>

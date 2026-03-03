@@ -67,10 +67,10 @@ export default async function TestDevOpsServicePage({
           ))}
         </ul>
         <div className="mt-3 flex gap-3 text-sm">
-          <Link href="/incidents" className="font-semibold text-blue-700 hover:text-blue-800">
+          <Link href="/incidents" className="font-semibold text-green-700 hover:text-green-800">
             View incidents
           </Link>
-          <Link href={`/services/${service.id}`} className="font-semibold text-blue-700 hover:text-blue-800">
+          <Link href={`/services/${service.id}`} className="font-semibold text-green-700 hover:text-green-800">
             View service detail
           </Link>
         </div>

@@ -2,13 +2,7 @@ import { NextRequest } from "next/server";
 
 import { enforceMutationProtection, jsonError, jsonOk, requireApiUser } from "@/lib/api";
 import { canUserPerformTeamAction } from "@/lib/auth/permissions";
-import { env } from "@/lib/env";
-import {
-  generateTeamInviteToken,
-  getTeamInviteExpiryDate,
-  hashTeamInviteToken,
-} from "@/lib/auth/team-invite";
-import { sendTeamInviteEmail, sendTeamMembershipAddedEmail } from "@/lib/auth/team-invite-email";
+import { PERMISSION_ACTIONS, PERMISSION_RESOURCE_DEFINITIONS } from "@/lib/auth/permission-metadata";
 import { prisma } from "@/lib/prisma";
 import { teamMemberAddSchema, teamMemberRemoveSchema } from "@/lib/validation";
 
@@ -33,6 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: true,
         name: true,
         slug: true,
+        organizationId: true,
         memberships: {
           orderBy: [{ role: "asc" }, { user: { name: "asc" } }],
           select: {
@@ -46,22 +41,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             },
           },
         },
-        invites: {
-          where: {
-            consumedAt: null,
-            expiresAt: {
-              gt: new Date(),
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
+        organization: {
           select: {
-            id: true,
-            email: true,
-            role: true,
-            expiresAt: true,
-            createdAt: true,
+            memberships: {
+              orderBy: [{ role: "asc" }, { user: { name: "asc" } }],
+              select: {
+                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -101,59 +95,92 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const body = await request.json();
     const parsed = teamMemberAddSchema.safeParse(body);
-
     if (!parsed.success) {
       return jsonError("Invalid team member payload", 400);
     }
 
-    const email = parsed.data.email.toLowerCase();
-    const team = await prisma.team.findUnique({
-      where: {
-        id: teamId,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
+    const [team, targetUser] = await Promise.all([
+      prisma.team.findUnique({
+        where: {
+          id: teamId,
+        },
+        select: {
+          id: true,
+          organizationId: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: parsed.data.userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      }),
+    ]);
 
     if (!team) {
       return jsonError("Team not found", 404);
     }
+    if (!targetUser) {
+      return jsonError("User not found", 404);
+    }
 
-    const targetUser = await prisma.user.findUnique({
+    const organizationMembership = await prisma.organizationMembership.findUnique({
       where: {
-        email,
+        userId_organizationId: {
+          userId: targetUser.id,
+          organizationId: team.organizationId,
+        },
       },
       select: {
         id: true,
-        name: true,
-        email: true,
+      },
+    });
+    if (!organizationMembership) {
+      return jsonError("User must be an organization member before joining a team", 400);
+    }
+
+    const existingMembership = await prisma.teamMembership.findUnique({
+      where: {
+        userId_teamId: {
+          userId: targetUser.id,
+          teamId,
+        },
+      },
+      select: {
+        userId: true,
+        role: true,
       },
     });
 
-    if (targetUser) {
-      const existingMembership = await prisma.teamMembership.findUnique({
+    if (existingMembership && !canUpdate) {
+      return jsonError("Forbidden", 403);
+    }
+    if (!existingMembership && !canCreate) {
+      return jsonError("Forbidden", 403);
+    }
+
+    const requestedRole = parsed.data.role;
+    const normalizedMembershipRole = requestedRole === "ADMIN" ? "MEMBER" : requestedRole;
+
+    if (existingMembership?.role === "OWNER" && normalizedMembershipRole !== "OWNER") {
+      const ownerCount = await prisma.teamMembership.count({
         where: {
-          userId_teamId: {
-            userId: targetUser.id,
-            teamId,
-          },
-        },
-        select: {
-          userId: true,
+          teamId,
+          role: "OWNER",
         },
       });
 
-      if (existingMembership && !canUpdate) {
-        return jsonError("Forbidden", 403);
+      if (ownerCount <= 1) {
+        return jsonError("Cannot demote the last owner", 400);
       }
+    }
 
-      if (!existingMembership && !canCreate) {
-        return jsonError("Forbidden", 403);
-      }
-
-      const membership = await prisma.teamMembership.upsert({
+    const membership = await prisma.$transaction(async (tx) => {
+      const updatedMembership = await tx.teamMembership.upsert({
         where: {
           userId_teamId: {
             userId: targetUser.id,
@@ -163,10 +190,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         create: {
           userId: targetUser.id,
           teamId,
-          role: parsed.data.role,
+          role: normalizedMembershipRole,
         },
         update: {
-          role: parsed.data.role,
+          role: normalizedMembershipRole,
         },
         select: {
           role: true,
@@ -180,90 +207,67 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
 
-      let notificationSent = true;
-      try {
-        await sendTeamMembershipAddedEmail({
-          to: targetUser.email,
-          teamName: team.name,
-          addedByName: user.name,
-          appUrl: env.APP_URL,
+      if (requestedRole === "ADMIN") {
+        for (const definition of PERMISSION_RESOURCE_DEFINITIONS) {
+          for (const action of PERMISSION_ACTIONS) {
+            await tx.teamPermission.upsert({
+              where: {
+                teamId_userId_resource_action: {
+                  teamId,
+                  userId: targetUser.id,
+                  resource: definition.resource,
+                  action,
+                },
+              },
+              update: {
+                allowed: true,
+              },
+              create: {
+                teamId,
+                userId: targetUser.id,
+                resource: definition.resource,
+                action,
+                allowed: true,
+              },
+            });
+          }
+        }
+      } else if (requestedRole === "MEMBER") {
+        const permissionRows = await tx.teamPermission.findMany({
+          where: {
+            teamId,
+            userId: targetUser.id,
+          },
+          select: {
+            allowed: true,
+          },
         });
-      } catch (error) {
-        notificationSent = false;
-        console.error("Team membership email error", error);
+
+        const totalPermissionCells = PERMISSION_RESOURCE_DEFINITIONS.length * PERMISSION_ACTIONS.length;
+        const isFullAccessOverride =
+          permissionRows.length === totalPermissionCells &&
+          permissionRows.every((row) => row.allowed === true);
+
+        if (isFullAccessOverride) {
+          await tx.teamPermission.deleteMany({
+            where: {
+              teamId,
+              userId: targetUser.id,
+            },
+          });
+        }
       }
 
-      return jsonOk({ mode: "membership", membership, notificationSent }, { status: 201 });
-    }
-
-    if (!canCreate) {
-      return jsonError("Forbidden", 403);
-    }
-
-    const rawInviteToken = generateTeamInviteToken();
-    const tokenHash = hashTeamInviteToken(rawInviteToken);
-    const expiresAt = getTeamInviteExpiryDate();
-
-    const invite = await prisma.$transaction(async (tx) => {
-      await tx.teamInvite.updateMany({
-        where: {
-          teamId,
-          email,
-          consumedAt: null,
-          expiresAt: {
-            gt: new Date(),
-          },
-        },
-        data: {
-          consumedAt: new Date(),
-        },
-      });
-
-      return tx.teamInvite.create({
-        data: {
-          teamId,
-          email,
-          role: parsed.data.role,
-          tokenHash,
-          invitedByUserId: user.id,
-          expiresAt,
-        },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-          expiresAt: true,
-          createdAt: true,
-        },
-      });
+      return updatedMembership;
     });
 
-    const acceptUrl = new URL("/team-invite", env.APP_URL);
-    acceptUrl.searchParams.set("token", rawInviteToken);
-
-    try {
-      await sendTeamInviteEmail({
-        to: email,
-        teamName: team.name,
-        invitedByName: user.name,
-        acceptUrl: acceptUrl.toString(),
-      });
-    } catch (error) {
-      await prisma.teamInvite.update({
-        where: {
-          id: invite.id,
-        },
-        data: {
-          consumedAt: new Date(),
-        },
-      });
-      throw error;
-    }
-
+    const responseRole = requestedRole === "ADMIN" ? "ADMIN" : membership.role;
     return jsonOk(
       {
-        mode: "invite",
-        invite,
+        membership: {
+          ...membership,
+          role: responseRole,
+        },
       },
       { status: 201 },
     );
@@ -293,39 +297,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const body = await request.json();
     const parsed = teamMemberRemoveSchema.safeParse(body);
-    if (!parsed.success) {
-      return jsonError("Invalid team member payload", 400);
-    }
-
-    if (parsed.data.inviteId) {
-      const invite = await prisma.teamInvite.findFirst({
-        where: {
-          id: parsed.data.inviteId,
-          teamId,
-          consumedAt: null,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (!invite) {
-        return jsonError("Pending invite not found", 404);
-      }
-
-      await prisma.teamInvite.update({
-        where: {
-          id: invite.id,
-        },
-        data: {
-          consumedAt: new Date(),
-        },
-      });
-
-      return jsonOk({ ok: true, removed: "invite" });
-    }
-
-    if (!parsed.data.userId) {
+    if (!parsed.success || !parsed.data.userId) {
       return jsonError("Invalid team member payload", 400);
     }
 

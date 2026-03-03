@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { Button } from "@/components/ui/button";
 import { SIMULATION_PROFILE_VALUES, type SimulationProfile } from "@/lib/test-dev-ops";
@@ -40,7 +41,7 @@ export function TeamEntryForm({
     <form className="space-y-4" onSubmit={onSubmit}>
       <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
         Team to test
-        <select
+        <AppSelect
           value={teamId}
           onChange={(event) => setTeamId(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -51,12 +52,12 @@ export function TeamEntryForm({
               {team.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
         Environment profile
-        <select
+        <AppSelect
           value={profile}
           onChange={(event) => setProfile(event.target.value as SimulationProfile)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -66,7 +67,7 @@ export function TeamEntryForm({
               {PROFILE_LABELS[entry]}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <Button type="submit">Enter Simulator</Button>

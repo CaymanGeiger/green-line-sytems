@@ -1,5 +1,5 @@
 {
-  "name": "dev-ops-incident-command-center",
+  "name": "greenline-systems",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,12 +7,17 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "node --env-file=.env --import tsx scripts/seed.ts",
     "sync:mock-events": "node --env-file=.env --import tsx scripts/sync-mock-events.ts",
     "metrics:recompute": "node --env-file=.env --import tsx scripts/recompute-metrics.ts",
-    "db:backfill-simulated": "node --env-file=.env --import tsx scripts/backfill-simulated.ts"
+    "db:backfill-simulated": "node --env-file=.env --import tsx scripts/backfill-simulated.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.2",
@@ -27,15 +32,19 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   },
   "prisma": {
     "seed": "node --env-file=.env --import tsx scripts/seed.ts"

@@ -40,17 +40,50 @@ export async function canUserPerformTeamAction(
   resource: PermissionResource,
   action: PermissionAction,
 ): Promise<boolean> {
-  const membership = await prisma.teamMembership.findUnique({
+  const [teamScope, membership] = await Promise.all([
+    prisma.team.findUnique({
+      where: {
+        id: teamId,
+      },
+      select: {
+        organizationId: true,
+      },
+    }),
+    prisma.teamMembership.findUnique({
+      where: {
+        userId_teamId: {
+          userId,
+          teamId,
+        },
+      },
+      select: {
+        role: true,
+      },
+    }),
+  ]);
+
+  if (!teamScope) {
+    return false;
+  }
+
+  const organizationMembership = await prisma.organizationMembership.findUnique({
     where: {
-      userId_teamId: {
+      userId_organizationId: {
         userId,
-        teamId,
+        organizationId: teamScope.organizationId,
       },
     },
     select: {
       role: true,
     },
   });
+
+  const isOrganizationAdmin =
+    organizationMembership?.role === "OWNER" || organizationMembership?.role === "ADMIN";
+
+  if (isOrganizationAdmin) {
+    return true;
+  }
 
   if (!membership) {
     return false;
@@ -87,25 +120,62 @@ export async function getTeamIdsForPermission(
   action: PermissionAction,
   candidateTeamIds?: string[],
 ): Promise<string[]> {
-  const memberships = await prisma.teamMembership.findMany({
-    where: {
-      userId,
-      ...(candidateTeamIds && candidateTeamIds.length > 0
-        ? {
-            teamId: {
-              in: candidateTeamIds,
-            },
-          }
-        : {}),
-    },
-    select: {
-      teamId: true,
-      role: true,
-    },
-  });
+  const [memberships, organizationAdminMemberships] = await Promise.all([
+    prisma.teamMembership.findMany({
+      where: {
+        userId,
+        ...(candidateTeamIds && candidateTeamIds.length > 0
+          ? {
+              teamId: {
+                in: candidateTeamIds,
+              },
+            }
+          : {}),
+      },
+      select: {
+        teamId: true,
+        role: true,
+      },
+    }),
+    prisma.organizationMembership.findMany({
+      where: {
+        userId,
+        role: {
+          in: ["OWNER", "ADMIN"],
+        },
+      },
+      select: {
+        organizationId: true,
+      },
+    }),
+  ]);
+
+  const teamIdSet = new Set<string>();
+
+  if (organizationAdminMemberships.length > 0) {
+    const organizationIds = organizationAdminMemberships.map((membership) => membership.organizationId);
+    const organizationTeams = await prisma.team.findMany({
+      where: {
+        organizationId: {
+          in: organizationIds,
+        },
+        ...(candidateTeamIds && candidateTeamIds.length > 0
+          ? {
+              id: {
+                in: candidateTeamIds,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+    organizationTeams.forEach((team) => teamIdSet.add(team.id));
+  }
 
   if (memberships.length === 0) {
-    return [];
+    return [...teamIdSet];
   }
 
   const memberTeamIds = memberships.filter((membership) => membership.role === "MEMBER").map((membership) => membership.teamId);
@@ -133,7 +203,7 @@ export async function getTeamIdsForPermission(
     overrideMap.set(row.teamId, row.allowed);
   });
 
-  return memberships
+  memberships
     .filter((membership) => {
       if (membership.role === "OWNER") {
         return true;
@@ -146,7 +216,11 @@ export async function getTeamIdsForPermission(
 
       return defaultPermissionForRole(membership.role, resource, action);
     })
-    .map((membership) => membership.teamId);
+    .forEach((membership) => {
+      teamIdSet.add(membership.teamId);
+    });
+
+  return [...teamIdSet];
 }
 
 export async function userHasAnyTeamPermission(

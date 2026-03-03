@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
 export function DeleteSavedViewButton({ id, disabled = false }: { id: string; disabled?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -25,14 +27,17 @@ export function DeleteSavedViewButton({ id, disabled = false }: { id: string; di
   }
 
   return (
-    <button
+    <Button
       type="button"
       onClick={onDelete}
-      disabled={loading || disabled}
-      className="rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 disabled:opacity-50"
+      disabled={disabled}
+      loading={loading}
+      loadingText="Deleting..."
+      variant="danger"
+      className="px-2.5 py-1.5"
       title={disabled ? "You do not have delete permission" : "Delete saved view"}
     >
-      {loading ? "Deleting..." : "Delete"}
-    </button>
+      Delete
+    </Button>
   );
 }

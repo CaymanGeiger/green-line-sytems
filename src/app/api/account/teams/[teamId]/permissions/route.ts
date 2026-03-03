@@ -112,22 +112,53 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const targetUserIds = Array.from(new Set(updates.map((update) => update.userId)));
-
-    const memberships = await prisma.teamMembership.findMany({
+    const teamScope = await prisma.team.findUnique({
       where: {
-        teamId,
-        userId: {
-          in: targetUserIds,
-        },
+        id: teamId,
       },
       select: {
-        userId: true,
-        role: true,
+        organizationId: true,
       },
     });
+    if (!teamScope) {
+      return jsonError("Team not found", 404);
+    }
+
+    const [memberships, orgAdmins] = await Promise.all([
+      prisma.teamMembership.findMany({
+        where: {
+          teamId,
+          userId: {
+            in: targetUserIds,
+          },
+        },
+        select: {
+          userId: true,
+          role: true,
+        },
+      }),
+      prisma.organizationMembership.findMany({
+        where: {
+          organizationId: teamScope.organizationId,
+          userId: {
+            in: targetUserIds,
+          },
+          role: {
+            in: ["OWNER", "ADMIN"],
+          },
+        },
+        select: {
+          userId: true,
+        },
+      }),
+    ]);
 
     if (memberships.length !== targetUserIds.length) {
       return jsonError("All updates must target active team members", 400);
+    }
+
+    if (orgAdmins.length > 0) {
+      return jsonError("Organization admins and owners inherit full access and cannot be overridden", 400);
     }
 
     const roleByUserId = new Map(memberships.map((membership) => [membership.userId, membership.role]));

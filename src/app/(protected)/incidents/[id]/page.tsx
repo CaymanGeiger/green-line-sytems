@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
 import { canUserPerformTeamAction } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
-import { incidentSeverityTone, incidentStatusTone } from "@/lib/presentation";
+import { alertSeverityTone, alertStatusTone, deployStatusTone, incidentSeverityTone, incidentStatusTone } from "@/lib/presentation";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 
@@ -215,7 +215,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             ) : (
               <ul className="space-y-2">
                 {incident.assignees.map((assignee) => (
-                  <li key={assignee.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+                  <li key={assignee.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                     <p className="font-semibold text-slate-900">{assignee.user.name}</p>
                     <p className="text-xs uppercase tracking-wide text-slate-500">{assignee.role}</p>
                   </li>
@@ -233,8 +233,11 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             ) : (
               <ul className="space-y-2">
                 {linkedDeploys.map((deploy) => (
-                  <li key={deploy.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
-                    <p className="font-semibold text-slate-900">{deploy.provider} · {deploy.status}</p>
+                  <li key={deploy.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-slate-900">{deploy.provider}</p>
+                      <Badge tone={deployStatusTone(deploy.status)}>{deploy.status}</Badge>
+                    </div>
                     <p className="font-mono text-xs text-slate-600">{deploy.commitSha.slice(0, 10)}</p>
                     <p className="text-xs text-slate-500">{formatDateTime(deploy.createdAt)}</p>
                   </li>
@@ -249,11 +252,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             ) : (
               <ul className="space-y-2">
                 {linkedAlerts.map((alert) => (
-                  <li key={alert.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+                  <li key={alert.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
                     <p className="font-semibold text-slate-900">{alert.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {alert.source} · {alert.severity} · {alert.status}
-                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <span>{alert.source}</span>
+                      <Badge tone={alertSeverityTone(alert.severity)}>{alert.severity}</Badge>
+                      <Badge tone={alertStatusTone(alert.status)}>{alert.status}</Badge>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -266,8 +271,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             ) : (
               <ul className="space-y-2">
                 {runbooks.map((runbook) => (
-                  <li key={runbook.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
-                    <Link className="font-semibold text-blue-700" href={`/runbooks/${runbook.id}`}>
+                  <li key={runbook.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                    <Link className="font-semibold text-green-700" href={`/runbooks/${runbook.id}`}>
                       {runbook.title}
                     </Link>
                     <p className="text-xs text-slate-500">{runbook.slug} · v{runbook.version}</p>
@@ -284,14 +289,14 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           {incident.postmortem ? (
             <div>
               <p className="text-sm text-slate-700">{incident.postmortem.actionItemsSummary}</p>
-              <Link className="mt-2 inline-block text-sm font-semibold text-blue-700" href={`/postmortems/${incident.id}`}>
+              <Link className="mt-2 inline-block text-sm font-semibold text-green-700" href={`/postmortems/${incident.id}`}>
                 Open postmortem
               </Link>
             </div>
           ) : (
             <div>
               {canUpdatePostmortem ? (
-                <Link className="text-sm font-semibold text-blue-700" href={`/postmortems/${incident.id}`}>
+                <Link className="text-sm font-semibold text-green-700" href={`/postmortems/${incident.id}`}>
                   Create postmortem
                 </Link>
               ) : (

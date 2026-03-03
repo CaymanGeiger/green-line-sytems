@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { LoadingInline } from "@/components/ui/loading-spinner";
 
 type FeedItem = {
   id: string;
@@ -35,6 +36,43 @@ function toneForType(type: FeedItem["type"]): "info" | "warning" | "danger" | "c
   }
 
   return "critical";
+}
+
+function toneForLevel(level: string): "success" | "warning" | "danger" | "critical" | "info" {
+  const normalized = level.toUpperCase();
+
+  if (normalized === "FATAL" || normalized === "CRITICAL" || normalized === "SEV1") {
+    return "critical";
+  }
+
+  if (
+    normalized === "ERROR" ||
+    normalized === "FAILED" ||
+    normalized === "TRIGGERED" ||
+    normalized === "OPEN" ||
+    normalized === "SEV2"
+  ) {
+    return "danger";
+  }
+
+  if (
+    normalized === "WARNING" ||
+    normalized === "WARN" ||
+    normalized === "ACKED" ||
+    normalized === "STARTED" ||
+    normalized === "IN_PROGRESS" ||
+    normalized === "MITIGATED" ||
+    normalized === "ROLLED_BACK" ||
+    normalized === "SEV3"
+  ) {
+    return "warning";
+  }
+
+  if (normalized === "SUCCEEDED" || normalized === "RESOLVED" || normalized === "DONE") {
+    return "success";
+  }
+
+  return "info";
 }
 
 export function TelemetryFeed({ teamId }: { teamId: string }) {
@@ -88,7 +126,7 @@ export function TelemetryFeed({ teamId }: { teamId: string }) {
   }, [teamId]);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading telemetry feed...</p>;
+    return <LoadingInline label="Loading telemetry feed..." />;
   }
 
   if (error) {
@@ -109,14 +147,14 @@ export function TelemetryFeed({ teamId }: { teamId: string }) {
           </div>
           <p className="mt-1 text-sm text-slate-800">{item.message}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            {item.level ? <span>{item.level}</span> : null}
+            {item.level ? <Badge tone={toneForLevel(item.level)}>{item.level}</Badge> : null}
             {item.serviceId && item.serviceName ? (
-              <Link href={`/services/${item.serviceId}`} className="font-semibold text-blue-700 hover:text-blue-800">
+              <Link href={`/services/${item.serviceId}`} className="font-semibold text-green-700 hover:text-green-800">
                 {item.serviceName}
               </Link>
             ) : null}
             {item.incidentId && item.incidentKey ? (
-              <Link href={`/incidents/${item.incidentId}`} className="font-semibold text-blue-700 hover:text-blue-800">
+              <Link href={`/incidents/${item.incidentId}`} className="font-semibold text-green-700 hover:text-green-800">
                 {item.incidentKey}
               </Link>
             ) : null}

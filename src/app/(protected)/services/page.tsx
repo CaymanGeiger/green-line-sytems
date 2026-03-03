@@ -1,13 +1,13 @@
 import Link from "next/link";
 
+import { AccordionCard } from "@/components/ui/accordion-card";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { FilterApplyButton } from "@/components/ui/filter-apply-button";
 import { SimulationOnlyToggle } from "@/components/ui/simulation-only-toggle";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
 import { canUserPerformTeamAction } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
-import { serviceTierTone } from "@/lib/presentation";
+import { deployStatusTone, serviceTierTone } from "@/lib/presentation";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 
@@ -33,18 +33,18 @@ export default async function ServicesPage({
 
   if (!activeTeam || !activeTeamId) {
     return (
-      <Card title="Services" subtitle="Service inventory with live operational health context.">
+      <AccordionCard title="Services" subtitle="Service inventory with live operational health context." defaultOpen>
         <p className="text-sm text-slate-500">You do not belong to a team yet. Join or create a team in Account.</p>
-      </Card>
+      </AccordionCard>
     );
   }
 
   const canViewServices = await canUserPerformTeamAction(user.id, activeTeamId, "SERVICE", "VIEW");
   if (!canViewServices) {
     return (
-      <Card title="Services" subtitle="Service inventory with live operational health context.">
+      <AccordionCard title="Services" subtitle="Service inventory with live operational health context." defaultOpen>
         <p className="text-sm text-slate-500">You do not have permission to view services for this team.</p>
-      </Card>
+      </AccordionCard>
     );
   }
 
@@ -106,7 +106,12 @@ export default async function ServicesPage({
 
   return (
     <div className="space-y-6">
-      <Card title="Services" subtitle={`Service inventory with live operational health context for ${activeTeam.name}.`}>
+      <AccordionCard
+        title="Services"
+        subtitle={`Service inventory with live operational health context for ${activeTeam.name}.`}
+        preferenceKey="services-inventory"
+        defaultOpen
+      >
         <form method="GET" className="mb-4 flex flex-wrap items-center gap-2">
           <SimulationOnlyToggle name="showSimulation" value="1" defaultChecked={showSimulation} />
           <FilterApplyButton />
@@ -120,7 +125,7 @@ export default async function ServicesPage({
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href={`/services/${service.id}${showSimulation ? "?showSimulation=1" : ""}`}
-                    className="text-base font-semibold text-blue-700 hover:text-blue-800"
+                    className="text-base font-semibold text-green-700 hover:text-green-800"
                   >
                     {service.name}
                   </Link>
@@ -129,15 +134,24 @@ export default async function ServicesPage({
                 <p className="mt-1 text-xs text-slate-500">
                   Team {service.team.name} · Owner {service.owner?.name ?? "Unassigned"}
                 </p>
-                <div className="mt-3 grid gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-3 text-sm">
+                <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 text-sm">
                   <p>
                     <span className="font-semibold text-slate-900">Open incidents:</span> {service.incidents.length}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-900">Last deploy:</span>{" "}
-                    {service.deployEvents[0]
-                      ? `${service.deployEvents[0].status} (${formatDateTime(service.deployEvents[0].createdAt)})`
-                      : "No deploy data"}
+                    {service.deployEvents[0] ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Badge tone={deployStatusTone(service.deployEvents[0].status)}>
+                          {service.deployEvents[0].status}
+                        </Badge>
+                        <span className="text-xs text-slate-500">
+                          {formatDateTime(service.deployEvents[0].createdAt)}
+                        </span>
+                      </span>
+                    ) : (
+                      "No deploy data"
+                    )}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-900">Last error:</span>{" "}
@@ -150,7 +164,7 @@ export default async function ServicesPage({
             ))}
           </div>
         )}
-      </Card>
+      </AccordionCard>
     </div>
   );
 }

@@ -39,11 +39,21 @@ async function signOutAction() {
   redirect("/signin");
 }
 
-export function SignOutButton() {
+type SignOutButtonProps = {
+  className?: string;
+  label?: string;
+  variant?: "primary" | "secondary" | "danger";
+};
+
+export function SignOutButton({
+  className,
+  label = "Sign Out",
+  variant = "secondary",
+}: SignOutButtonProps = {}) {
   return (
     <form action={signOutAction}>
-      <Button type="submit" variant="secondary" className="min-w-[96px]">
-        Sign Out
+      <Button type="submit" variant={variant} className={className}>
+        {label}
       </Button>
     </form>
   );

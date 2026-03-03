@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ type TeamMember = {
   userId: string;
   name: string;
   email: string;
-  role: "OWNER" | "MEMBER";
+  role: "OWNER" | "MEMBER" | "TEAM_ADMIN" | "ORG_ADMIN" | "ORG_OWNER";
+  roleSource: "TEAM" | "ORGANIZATION";
 };
 
 type PermissionOverride = {
@@ -27,9 +29,10 @@ type PermissionOverride = {
 
 type TeamPermissionsManagerProps = {
   teamId: string;
-  teamName: string;
   members: TeamMember[];
   overrides: PermissionOverride[];
+  canUpdate?: boolean;
+  addTeamMemberHref?: string;
 };
 
 type PermissionMatrix = Record<string, Record<string, boolean>>;
@@ -39,12 +42,16 @@ function keyFor(resource: PermissionResourceKey, action: PermissionActionKey): s
 }
 
 function buildMemberMatrix(member: TeamMember, overrides: PermissionOverride[]): Record<string, boolean> {
+  if (member.role === "OWNER" || member.role === "ORG_OWNER" || member.role === "ORG_ADMIN") {
+    return buildFullAccessMatrix();
+  }
+
   const base: Record<string, boolean> = {};
 
   PERMISSION_RESOURCE_DEFINITIONS.forEach((definition) => {
     PERMISSION_ACTIONS.forEach((action) => {
       const key = keyFor(definition.resource, action);
-      base[key] = defaultPermissionByMembershipRole(member.role, definition.resource, action);
+      base[key] = defaultPermissionByMembershipRole("MEMBER", definition.resource, action);
     });
   });
 
@@ -55,9 +62,30 @@ function buildMemberMatrix(member: TeamMember, overrides: PermissionOverride[]):
   return base;
 }
 
-export function TeamPermissionsManager({ teamId, teamName, members, overrides }: TeamPermissionsManagerProps) {
+function buildFullAccessMatrix(): Record<string, boolean> {
+  const fullAccess: Record<string, boolean> = {};
+
+  PERMISSION_RESOURCE_DEFINITIONS.forEach((definition) => {
+    PERMISSION_ACTIONS.forEach((action) => {
+      fullAccess[keyFor(definition.resource, action)] = true;
+    });
+  });
+
+  return fullAccess;
+}
+
+export function TeamPermissionsManager({
+  teamId,
+  members,
+  overrides,
+  canUpdate = true,
+  addTeamMemberHref,
+}: TeamPermissionsManagerProps) {
   const [selectedUserId, setSelectedUserId] = useState(() => {
-    const firstMember = members.find((member) => member.role !== "OWNER") ?? members[0];
+    const firstMember =
+      members.find((member) => member.role === "MEMBER") ??
+      members.find((member) => member.role !== "OWNER" && member.role !== "ORG_OWNER" && member.role !== "ORG_ADMIN") ??
+      members[0];
     return firstMember?.userId ?? "";
   });
   const [matrixByUserId, setMatrixByUserId] = useState<PermissionMatrix>(() => {
@@ -78,9 +106,21 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
   );
 
   const selectedMatrix = selectedUserId ? matrixByUserId[selectedUserId] : undefined;
+  const selectedMemberHasInheritedFullAccess = Boolean(
+    selectedMember &&
+      (selectedMember.role === "OWNER" || selectedMember.role === "ORG_OWNER" || selectedMember.role === "ORG_ADMIN"),
+  );
+  const hasFullAccess = Boolean(
+    selectedMember &&
+      (selectedMemberHasInheritedFullAccess ||
+        (selectedMatrix &&
+          PERMISSION_RESOURCE_DEFINITIONS.every((definition) =>
+            PERMISSION_ACTIONS.every((action) => selectedMatrix[keyFor(definition.resource, action)] === true),
+          ))),
+  );
 
   function onToggle(resource: PermissionResourceKey, action: PermissionActionKey, checked: boolean) {
-    if (!selectedMember || selectedMember.role === "OWNER") {
+    if (!selectedMember || selectedMemberHasInheritedFullAccess || !canUpdate) {
       return;
     }
 
@@ -95,7 +135,7 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
   }
 
   function resetToDefaults() {
-    if (!selectedMember || selectedMember.role === "OWNER") {
+    if (!selectedMember || selectedMemberHasInheritedFullAccess || !canUpdate) {
       return;
     }
 
@@ -107,8 +147,21 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
     setError(null);
   }
 
+  function setFullAccess(enabled: boolean) {
+    if (!selectedMember || selectedMemberHasInheritedFullAccess || !canUpdate) {
+      return;
+    }
+
+    setMatrixByUserId((current) => ({
+      ...current,
+      [selectedMember.userId]: enabled ? buildFullAccessMatrix() : buildMemberMatrix(selectedMember, []),
+    }));
+    setSuccess(null);
+    setError(null);
+  }
+
   async function saveSelectedMember() {
-    if (!selectedMember || !selectedMatrix || selectedMember.role === "OWNER") {
+    if (!selectedMember || !selectedMatrix || selectedMemberHasInheritedFullAccess || !canUpdate) {
       return;
     }
 
@@ -154,9 +207,11 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-        Active team: <span className="font-semibold text-slate-900">{teamName}</span>
-      </div>
+      {!canUpdate ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          You can view permissions for this team, but you do not have access to update them.
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section className="space-y-2">
@@ -174,7 +229,7 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                 }}
                 className={`w-full rounded-xl border px-3 py-2 text-left transition ${
                   selected
-                    ? "border-blue-300 bg-blue-50/70"
+                    ? "border-green-300 bg-green-50/70"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
@@ -182,19 +237,38 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                 <p className="text-xs text-slate-500">{member.email}</p>
                 <span
                   className={`mt-2 inline-flex rounded px-2 py-1 text-[11px] font-semibold ${
-                    member.role === "OWNER"
+                    member.role === "TEAM_ADMIN"
                       ? "bg-blue-100 text-blue-700"
+                      : member.role === "OWNER" || member.role === "ORG_OWNER" || member.role === "ORG_ADMIN"
+                      ? "bg-green-100 text-green-700"
                       : "bg-slate-100 text-slate-700"
                   }`}
                 >
-                  {member.role}
+                  {member.role === "ORG_ADMIN"
+                    ? "ORG ADMIN"
+                    : member.role === "ORG_OWNER"
+                      ? "ORG OWNER"
+                      : member.role === "TEAM_ADMIN"
+                        ? "TEAM ADMIN"
+                      : member.role}
                 </span>
+                {member.roleSource === "ORGANIZATION" ? (
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">Inherited from organization role</p>
+                ) : null}
               </button>
             );
           })}
+          {addTeamMemberHref ? (
+            <Link
+              href={addTeamMemberHref}
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-green-300 hover:bg-green-50 hover:text-green-700"
+            >
+              Add A Team Member
+            </Link>
+          ) : null}
         </section>
 
-        <section className="space-y-3">
+        <section className="space-y-3 lg:pt-6">
           {selectedMember ? (
             <>
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -203,18 +277,43 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
               </div>
 
               {selectedMember.role === "OWNER" ? (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
                   Owners always keep full permissions for safety and team administration.
                 </div>
               ) : (
                 <>
+                  {selectedMemberHasInheritedFullAccess ? (
+                    <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+                      {selectedMember.role === "ORG_OWNER"
+                        ? "Organization owners automatically have full access across all teams."
+                        : "Organization admins automatically have full access across all teams."}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Full access</p>
+                      <p className="text-xs text-slate-500">Grant create/update/delete access across all features.</p>
+                    </div>
+                    <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={hasFullAccess}
+                        onChange={(event) => setFullAccess(event.target.checked)}
+                        disabled={!canUpdate || selectedMemberHasInheritedFullAccess}
+                        className="h-4 w-4 cursor-pointer rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      />
+                      Full access
+                    </label>
+                  </div>
+
                   <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                     <table className="w-full min-w-[760px] text-left text-sm">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-                          <th className="px-3 py-2">Feature</th>
+                          <th className="px-3 py-2 md:px-4">Feature</th>
                           {PERMISSION_ACTIONS.map((action) => (
-                            <th key={action} className="px-3 py-2 text-center">
+                            <th key={action} className="px-3 py-2 text-center md:px-4">
                               {action}
                             </th>
                           ))}
@@ -223,7 +322,7 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                       <tbody>
                         {PERMISSION_RESOURCE_DEFINITIONS.map((definition) => (
                           <tr key={definition.resource} className="border-b border-slate-100 last:border-none">
-                            <td className="px-3 py-3">
+                            <td className="px-3 py-3 md:px-4">
                               <p className="font-semibold text-slate-900">{definition.label}</p>
                               <p className="text-xs text-slate-500">{definition.description}</p>
                             </td>
@@ -232,12 +331,13 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                               const checked = selectedMatrix?.[key] ?? false;
 
                               return (
-                                <td key={key} className="px-3 py-3 text-center">
+                                <td key={key} className="px-3 py-3 text-center md:px-4">
                                   <input
                                     type="checkbox"
                                     checked={checked}
                                     onChange={(event) => onToggle(definition.resource, action, event.target.checked)}
-                                    className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                                    disabled={!canUpdate || selectedMemberHasInheritedFullAccess}
+                                    className="h-4 w-4 cursor-pointer rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                                   />
                                 </td>
                               );
@@ -254,7 +354,9 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                       variant="secondary"
                       className="inline-flex h-10 items-center justify-center px-4 text-sm"
                       onClick={resetToDefaults}
-                      disabled={loading}
+                      disabled={!canUpdate || selectedMemberHasInheritedFullAccess}
+                      loading={loading}
+                      loadingText="Saving..."
                     >
                       Reset to defaults
                     </Button>
@@ -262,9 +364,11 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
                       type="button"
                       className="inline-flex h-10 items-center justify-center px-4 text-sm"
                       onClick={saveSelectedMember}
-                      disabled={loading}
+                      disabled={!canUpdate || selectedMemberHasInheritedFullAccess}
+                      loading={loading}
+                      loadingText="Saving..."
                     >
-                      {loading ? "Saving..." : "Save permissions"}
+                      Save permissions
                     </Button>
                   </div>
                 </>
@@ -272,7 +376,7 @@ export function TeamPermissionsManager({ teamId, teamName, members, overrides }:
 
               <div className="min-h-[20px]" aria-live="polite">
                 {error ? <p className="text-xs font-semibold text-rose-600">{error}</p> : null}
-                {!error && success ? <p className="text-xs font-semibold text-emerald-600">{success}</p> : null}
+                {!error && success ? <p className="text-xs font-semibold text-green-600">{success}</p> : null}
               </div>
             </>
           ) : (

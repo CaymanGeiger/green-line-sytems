@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AccordionCard } from "@/components/ui/accordion-card";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { FilterApplyButton } from "@/components/ui/filter-apply-button";
@@ -8,7 +9,7 @@ import { SimulationOnlyToggle } from "@/components/ui/simulation-only-toggle";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
 import { canUserPerformTeamAction } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
-import { incidentSeverityTone, incidentStatusTone, serviceTierTone } from "@/lib/presentation";
+import { deployStatusTone, errorLevelTone, incidentSeverityTone, incidentStatusTone, serviceTierTone } from "@/lib/presentation";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
 
@@ -143,9 +144,9 @@ export default async function ServiceDetailPage({
           ) : (
             <ul className="space-y-3">
               {service.incidents.map((incident) => (
-                <li key={incident.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                <li key={incident.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Link href={`/incidents/${incident.id}`} className="font-semibold text-blue-700 hover:text-blue-800">
+                    <Link href={`/incidents/${incident.id}`} className="font-semibold text-green-700 hover:text-green-800">
                       {incident.incidentKey}
                     </Link>
                     <div className="flex gap-2">
@@ -167,8 +168,11 @@ export default async function ServiceDetailPage({
           ) : (
             <ul className="space-y-2">
               {service.deployEvents.map((deploy) => (
-                <li key={deploy.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
-                  <p className="font-semibold text-slate-900">{deploy.provider} · {deploy.status}</p>
+                <li key={deploy.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-slate-900">{deploy.provider}</p>
+                    <Badge tone={deployStatusTone(deploy.status)}>{deploy.status}</Badge>
+                  </div>
                   <p className="font-mono text-xs text-slate-600">{deploy.commitSha.slice(0, 10)}</p>
                   <p className="text-xs text-slate-500">{deploy.branch ?? "main"} · {formatDateTime(deploy.createdAt)}</p>
                 </li>
@@ -178,22 +182,25 @@ export default async function ServiceDetailPage({
         </Card>
       </section>
 
-      <Card title="Recent Errors">
+      <AccordionCard title="Recent Errors" preferenceKey="service-detail-recent-errors" defaultOpen>
         {service.errorEvents.length === 0 ? (
           <p className="text-sm text-slate-500">No error events yet.</p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {service.errorEvents.map((error) => (
-              <div key={error.id} className="rounded-xl border border-slate-100 bg-white px-3 py-3">
+              <div key={error.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                 <p className="text-sm font-semibold text-slate-900">{error.title}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {error.level} · {error.occurrences} occurrences · {formatDateTime(error.lastSeenAt)}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <Badge tone={errorLevelTone(error.level)}>{error.level}</Badge>
+                  <span>{error.occurrences} occurrences</span>
+                  <span>·</span>
+                  <span>{formatDateTime(error.lastSeenAt)}</span>
+                </div>
               </div>
             ))}
           </div>
         )}
-      </Card>
+      </AccordionCard>
     </div>
   );
 }

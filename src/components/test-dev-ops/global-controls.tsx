@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { Button } from "@/components/ui/button";
 import { useUiBooleanPreference } from "@/components/ui/ui-preferences-provider";
@@ -180,7 +181,7 @@ export function GlobalControls({
       <div className="grid gap-3 lg:grid-cols-3">
         <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Profile
-          <select
+          <AppSelect
             value={profile}
             onChange={(event) => setProfile(event.target.value as typeof profile)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -188,7 +189,7 @@ export function GlobalControls({
             <option value="SAFE_DEMO">Safe Demo</option>
             <option value="HIGH_TRAFFIC">High Traffic</option>
             <option value="RELEASE_DAY">Release Day</option>
-          </select>
+          </AppSelect>
         </label>
 
         <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -267,18 +268,22 @@ export function GlobalControls({
           type="button"
           variant="secondary"
           onClick={markSimulationEventsResolved}
-          disabled={resolving || purging || !canResolveEvents}
+          disabled={purging || !canResolveEvents}
+          loading={resolving}
+          loadingText="Resolving..."
         >
-          {resolving ? "Resolving..." : "Mark all simulation events resolved"}
+          Mark all simulation events resolved
         </Button>
 
         <Button
           type="button"
           variant="danger"
           onClick={deleteAllSimulationData}
-          disabled={purging || resolving || !canDeleteData}
+          disabled={resolving || !canDeleteData}
+          loading={purging}
+          loadingText="Deleting..."
         >
-          {purging ? "Deleting..." : "Delete all simulation data"}
+          Delete all simulation data
         </Button>
       </div>
 
@@ -308,7 +313,7 @@ export function GlobalControls({
             <div className="grid gap-3 md:grid-cols-3">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Preset target service
-                <select
+                <AppSelect
                   value={presetServiceId}
                   onChange={(event) => setPresetServiceId(event.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -319,12 +324,12 @@ export function GlobalControls({
                       {service.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
 
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Severity override
-                <select
+                <AppSelect
                   value={severityOverride}
                   onChange={(event) => setSeverityOverride(event.target.value as SimulationSeverityOverride)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -335,12 +340,12 @@ export function GlobalControls({
                       {value === "AUTO" ? "Auto (by scenario)" : value}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
 
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Run count
-                <select
+                <AppSelect
                   value={String(presetRunCount)}
                   onChange={(event) => setPresetRunCount(Number.parseInt(event.target.value, 10) || 1)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -349,7 +354,7 @@ export function GlobalControls({
                   <option value="1">1x</option>
                   <option value="2">2x burst</option>
                   <option value="3">3x burst</option>
-                </select>
+                </AppSelect>
               </label>
             </div>
 
@@ -360,9 +365,11 @@ export function GlobalControls({
                   type="button"
                   variant="secondary"
                   disabled={loadingPreset !== null || !canRunPresets}
+                  loading={loadingPreset === preset}
+                  loadingText="Running..."
                   onClick={() => runPreset(preset)}
                 >
-                  {loadingPreset === preset ? "Running..." : PRESET_LABELS[preset]}
+                  {PRESET_LABELS[preset]}
                 </Button>
               ))}
             </div>
@@ -370,7 +377,7 @@ export function GlobalControls({
         ) : null}
       </div>
 
-      {feedback ? <p className="text-sm text-emerald-700">{feedback}</p> : null}
+      {feedback ? <p className="text-sm text-green-700">{feedback}</p> : null}
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
     </div>
   );

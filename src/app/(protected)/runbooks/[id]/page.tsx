@@ -100,17 +100,17 @@ export default async function RunbookDetailPage({ params }: { params: Promise<{ 
           <table className="w-full min-w-[480px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
-                <th className="pb-2">Version</th>
-                <th className="pb-2">State</th>
-                <th className="pb-2">Updated</th>
+                <th className="px-3 pb-2 md:px-4">Version</th>
+                <th className="px-3 pb-2 md:px-4">State</th>
+                <th className="px-3 pb-2 md:px-4">Updated</th>
               </tr>
             </thead>
             <tbody>
               {versionHistory.map((versionRow) => (
                 <tr key={versionRow.id} className="border-b border-slate-100 last:border-none">
-                  <td className="py-3">v{versionRow.version}</td>
-                  <td className="py-3">{versionRow.isActive ? "ACTIVE" : "INACTIVE"}</td>
-                  <td className="py-3 text-xs text-slate-600">{formatDateTime(versionRow.updatedAt)}</td>
+                  <td className="px-3 py-3 md:px-4">v{versionRow.version}</td>
+                  <td className="px-3 py-3 md:px-4">{versionRow.isActive ? "ACTIVE" : "INACTIVE"}</td>
+                  <td className="px-3 py-3 text-xs text-slate-600 md:px-4">{formatDateTime(versionRow.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>

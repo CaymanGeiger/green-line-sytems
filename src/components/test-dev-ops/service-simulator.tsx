@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { useTestDevOps } from "@/components/test-dev-ops/test-devops-provider";
 import { Button } from "@/components/ui/button";
@@ -194,7 +195,7 @@ export function ServiceSimulator({
         <div className="grid gap-3 md:grid-cols-4">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Action
-            <select
+            <AppSelect
               value={action}
               onChange={(event) => setAction(event.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -204,12 +205,12 @@ export function ServiceSimulator({
                   {option.label}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
 
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Outcome
-            <select
+            <AppSelect
               value={expectedOutcome}
               onChange={(event) => setExpectedOutcome(event.target.value as SimulationOutcome)}
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -219,7 +220,7 @@ export function ServiceSimulator({
                   {outcome}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
 
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -237,7 +238,7 @@ export function ServiceSimulator({
 
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Severity override
-            <select
+            <AppSelect
               value={severityOverride}
               onChange={(event) => setSeverityOverride(event.target.value as SimulationSeverityOverride)}
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -247,7 +248,7 @@ export function ServiceSimulator({
                   {value === "AUTO" ? "Auto (by scenario)" : value}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
         </div>
 
@@ -255,12 +256,12 @@ export function ServiceSimulator({
           <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 md:grid-cols-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Method
-              <select value={method} onChange={(event) => setMethod(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={method} onChange={(event) => setMethod(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="GET">GET</option>
                 <option value="POST">POST</option>
                 <option value="PUT">PUT</option>
                 <option value="DELETE">DELETE</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Path
@@ -272,11 +273,11 @@ export function ServiceSimulator({
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Burst mode
-              <select value={burstMode} onChange={(event) => setBurstMode(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={burstMode} onChange={(event) => setBurstMode(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="normal">normal</option>
                 <option value="high">high</option>
                 <option value="extreme">extreme</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 md:col-span-2">
               Downstream dependency latency (ms)
@@ -289,10 +290,10 @@ export function ServiceSimulator({
           <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 md:grid-cols-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Login mode
-              <select value={loginMode} onChange={(event) => setLoginMode(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={loginMode} onChange={(event) => setLoginMode(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="good-creds">good-creds</option>
                 <option value="bad-creds-burst">bad-creds-burst</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Token validations / min
@@ -313,19 +314,19 @@ export function ServiceSimulator({
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Payment method
-              <select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="card">card</option>
                 <option value="ach">ach</option>
                 <option value="wallet">wallet</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Processor state
-              <select value={processorState} onChange={(event) => setProcessorState(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={processorState} onChange={(event) => setProcessorState(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="stable">stable</option>
                 <option value="slow">slow</option>
                 <option value="failing">failing</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Replay count
@@ -338,10 +339,10 @@ export function ServiceSimulator({
           <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 md:grid-cols-2">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Query type
-              <select value={queryType} onChange={(event) => setQueryType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              <AppSelect value={queryType} onChange={(event) => setQueryType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 <option value="simple">simple</option>
                 <option value="complex">complex</option>
-              </select>
+              </AppSelect>
             </label>
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Cache hit ratio (%)
@@ -380,8 +381,8 @@ export function ServiceSimulator({
 
         {!canSimulate ? <p className="text-sm text-slate-500">You have view-only simulator access for this team.</p> : null}
 
-        <Button type="submit" disabled={loading || !canSimulate}>
-          {loading ? "Running simulation..." : "Run simulation action"}
+        <Button type="submit" disabled={!canSimulate} loading={loading} loadingText="Running simulation...">
+          Run simulation action
         </Button>
       </form>
 
@@ -398,7 +399,7 @@ export function ServiceSimulator({
             <li>{result.deployWritten ? "deploy event written" : "no deploy event"}</li>
           </ul>
           {result.incidentId && result.incidentKey ? (
-            <Link href={`/incidents/${result.incidentId}`} className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800">
+            <Link href={`/incidents/${result.incidentId}`} className="mt-2 inline-block text-sm font-semibold text-green-700 hover:text-green-800">
               Open incident {result.incidentKey}
             </Link>
           ) : null}

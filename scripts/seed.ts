@@ -90,6 +90,8 @@ async function main() {
   await prisma.savedView.deleteMany();
   await prisma.session.deleteMany();
   await prisma.passwordResetCode.deleteMany();
+  await prisma.organizationInvite.deleteMany();
+  await prisma.organizationMembership.deleteMany();
   await prisma.actionItem.deleteMany();
   await prisma.postmortem.deleteMany();
   await prisma.incidentTimelineEvent.deleteMany();
@@ -106,6 +108,7 @@ async function main() {
   await prisma.service.deleteMany();
   await prisma.teamMembership.deleteMany();
   await prisma.team.deleteMany();
+  await prisma.organization.deleteMany();
   await prisma.user.deleteMany();
 
   console.info("Creating baseline users and teams...");
@@ -149,15 +152,32 @@ async function main() {
 
   const users = [adminUser, incidentCommanderUser, engineerUser, viewerUser];
 
+  const [organizationCore, organizationCommerce] = await Promise.all([
+    prisma.organization.create({
+      data: {
+        name: "BlueRidge Software",
+        slug: "blueridge-software",
+      },
+    }),
+    prisma.organization.create({
+      data: {
+        name: "Commerce Group",
+        slug: "commerce-group",
+      },
+    }),
+  ]);
+
   const [teamCore, teamCommerce] = await Promise.all([
     prisma.team.create({
       data: {
+        organizationId: organizationCore.id,
         name: "Core Platform",
         slug: "core-platform",
       },
     }),
     prisma.team.create({
       data: {
+        organizationId: organizationCommerce.id,
         name: "Commerce Systems",
         slug: "commerce-systems",
       },
@@ -165,6 +185,24 @@ async function main() {
   ]);
 
   const teams = [teamCore, teamCommerce];
+
+  for (const user of users) {
+    await prisma.organizationMembership.create({
+      data: {
+        userId: user.id,
+        organizationId: organizationCore.id,
+        role: user.role === UserRole.ADMIN ? "OWNER" : user.role === UserRole.IC ? "ADMIN" : "MEMBER",
+      },
+    });
+
+    await prisma.organizationMembership.create({
+      data: {
+        userId: user.id,
+        organizationId: organizationCommerce.id,
+        role: user.role === UserRole.ADMIN ? "OWNER" : user.role === UserRole.IC ? "ADMIN" : "MEMBER",
+      },
+    });
+  }
 
   for (const user of users) {
     await prisma.teamMembership.create({
@@ -615,8 +653,9 @@ async function main() {
 
   console.info("Seed complete.");
 
-  const [teamCount, serviceCount, incidentCount, logCount, errorCount, deployCount, runbookCount, postmortemCount] =
+  const [organizationCount, teamCount, serviceCount, incidentCount, logCount, errorCount, deployCount, runbookCount, postmortemCount] =
     await Promise.all([
+      prisma.organization.count(),
       prisma.team.count(),
       prisma.service.count(),
       prisma.incident.count(),
@@ -630,6 +669,7 @@ async function main() {
   console.info(
     JSON.stringify(
       {
+        organizationCount,
         teamCount,
         serviceCount,
         incidentCount,

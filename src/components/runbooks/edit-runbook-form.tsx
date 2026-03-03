@@ -124,8 +124,8 @@ export function EditRunbookForm({ runbook }: { runbook: Runbook }) {
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save runbook"}
+        <Button type="submit" loading={loading} loadingText="Saving...">
+          Save runbook
         </Button>
       </div>
     </form>

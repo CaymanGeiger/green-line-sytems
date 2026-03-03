@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { Button } from "@/components/ui/button";
 
@@ -104,7 +105,7 @@ export function IncidentDetailActions({ incidentId, currentStatus, currentSeveri
       <form onSubmit={handleStatus} className="space-y-2">
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Status change</label>
         <div className="flex items-center gap-2">
-          <select
+          <AppSelect
             value={status}
             onChange={(event) => setStatus(event.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -113,8 +114,8 @@ export function IncidentDetailActions({ incidentId, currentStatus, currentSeveri
             <option value="INVESTIGATING">INVESTIGATING</option>
             <option value="MITIGATED">MITIGATED</option>
             <option value="RESOLVED">RESOLVED</option>
-          </select>
-          <Button type="submit" variant="secondary" disabled={loading}>
+          </AppSelect>
+          <Button type="submit" variant="secondary" loading={loading} loadingText="Saving...">
             Save
           </Button>
         </div>
@@ -123,7 +124,7 @@ export function IncidentDetailActions({ incidentId, currentStatus, currentSeveri
       <form onSubmit={handleSeverity} className="space-y-2">
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Severity change</label>
         <div className="flex items-center gap-2">
-          <select
+          <AppSelect
             value={severity}
             onChange={(event) => setSeverity(event.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -132,8 +133,8 @@ export function IncidentDetailActions({ incidentId, currentStatus, currentSeveri
             <option value="SEV2">SEV2</option>
             <option value="SEV3">SEV3</option>
             <option value="SEV4">SEV4</option>
-          </select>
-          <Button type="submit" variant="secondary" disabled={loading}>
+          </AppSelect>
+          <Button type="submit" variant="secondary" loading={loading} loadingText="Saving...">
             Save
           </Button>
         </div>
@@ -148,7 +149,7 @@ export function IncidentDetailActions({ incidentId, currentStatus, currentSeveri
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
           placeholder="Timeline update..."
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" loading={loading} loadingText="Posting...">
           Post note
         </Button>
       </form>

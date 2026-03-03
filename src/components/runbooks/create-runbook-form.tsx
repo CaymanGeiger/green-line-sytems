@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import { AppSelect } from "@/components/ui/app-select";
 
 import { Button } from "@/components/ui/button";
 
@@ -79,7 +80,7 @@ export function CreateRunbookForm({ teams, services }: Props) {
     <form className="grid gap-3 md:grid-cols-2" onSubmit={onSubmit}>
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Team
-        <select
+        <AppSelect
           value={teamId}
           onChange={(event) => {
             setTeamId(event.target.value);
@@ -92,12 +93,12 @@ export function CreateRunbookForm({ teams, services }: Props) {
               {team.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         Service
-        <select
+        <AppSelect
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -108,7 +109,7 @@ export function CreateRunbookForm({ teams, services }: Props) {
               {service.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
 
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -169,8 +170,8 @@ export function CreateRunbookForm({ teams, services }: Props) {
 
       {error ? <p className="md:col-span-2 text-sm text-rose-600">{error}</p> : null}
       <div className="md:col-span-2 flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Create runbook"}
+        <Button type="submit" loading={loading} loadingText="Saving...">
+          Create runbook
         </Button>
       </div>
     </form>

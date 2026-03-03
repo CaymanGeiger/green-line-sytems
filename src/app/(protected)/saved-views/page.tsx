@@ -128,7 +128,12 @@ export default async function SavedViewsPage() {
         )}
       </AccordionCard>
 
-      <Card title="My Views">
+      <AccordionCard
+        title="My Views"
+        subtitle="Saved dashboard and incident filters you can reapply in one click."
+        preferenceKey="saved-views-my-views"
+        defaultOpen
+      >
         {savedViews.length === 0 ? (
           <p className="text-sm text-slate-500">No saved views yet.</p>
         ) : (
@@ -151,7 +156,7 @@ export default async function SavedViewsPage() {
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Link href={href} className="text-sm font-semibold text-blue-700 hover:text-blue-800">
+                    <Link href={href} className="text-sm font-semibold text-green-700 hover:text-green-800">
                       Open view
                     </Link>
                     {Object.entries(filters).map(([key, value]) => (
@@ -168,7 +173,7 @@ export default async function SavedViewsPage() {
             })}
           </div>
         )}
-      </Card>
+      </AccordionCard>
     </div>
   );
 }

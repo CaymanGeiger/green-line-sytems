@@ -51,7 +51,7 @@ export default async function TestDevOpsTeamPage({ params }: { params: Promise<{
           {firstService ? (
             <Link
               href={`/test-dev-ops/${team.id}/${firstService.id}`}
-              className="inline-flex rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="inline-flex rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700"
             >
               Start with {firstService.name}
             </Link>

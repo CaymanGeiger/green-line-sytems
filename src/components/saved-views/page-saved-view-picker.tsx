@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AppSelect } from "@/components/ui/app-select";
 
 type SavedViewOption = {
   id: string;
@@ -15,6 +16,8 @@ type PageSavedViewPickerProps = {
   formId: string;
   fieldNames: string[];
   defaultValues?: Record<string, string | number | boolean>;
+  initialSelectedViewId?: string;
+  queryParamName?: string;
 };
 
 function asBool(value: string | number | boolean): boolean {
@@ -33,10 +36,15 @@ export function PageSavedViewPicker({
   formId,
   fieldNames,
   defaultValues = {},
+  initialSelectedViewId,
+  queryParamName = "savedViewId",
 }: PageSavedViewPickerProps) {
-  const [selectedViewId, setSelectedViewId] = useState("");
+  const [selectedViewId, setSelectedViewId] = useState(initialSelectedViewId ?? "");
+  const activeSelectedViewId = options.some((option) => option.id === selectedViewId) ? selectedViewId : "";
 
-  function applyFiltersToForm(filters: Record<string, string | number | boolean>) {
+  function applyFiltersToForm(
+    filters: Record<string, string | number | boolean>,
+  ) {
     const form = document.getElementById(formId);
     if (!(form instanceof HTMLFormElement)) {
       return;
@@ -44,12 +52,19 @@ export function PageSavedViewPicker({
 
     fieldNames.forEach((fieldName) => {
       const input = form.querySelector(`[name="${fieldName}"]`);
-      if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement || input instanceof HTMLTextAreaElement)) {
+      if (
+        !(
+          input instanceof HTMLInputElement ||
+          input instanceof HTMLSelectElement ||
+          input instanceof HTMLTextAreaElement
+        )
+      ) {
         return;
       }
       const defaultValue = defaultValues[fieldName];
       if (input instanceof HTMLInputElement && input.type === "checkbox") {
-        input.checked = defaultValue !== undefined ? asBool(defaultValue) : false;
+        input.checked =
+          defaultValue !== undefined ? asBool(defaultValue) : false;
         return;
       }
       input.value = defaultValue !== undefined ? String(defaultValue) : "";
@@ -57,7 +72,13 @@ export function PageSavedViewPicker({
 
     Object.entries(filters).forEach(([fieldName, value]) => {
       const input = form.querySelector(`[name="${fieldName}"]`);
-      if (!(input instanceof HTMLInputElement || input instanceof HTMLSelectElement || input instanceof HTMLTextAreaElement)) {
+      if (
+        !(
+          input instanceof HTMLInputElement ||
+          input instanceof HTMLSelectElement ||
+          input instanceof HTMLTextAreaElement
+        )
+      ) {
         return;
       }
       if (input instanceof HTMLInputElement && input.type === "checkbox") {
@@ -92,10 +113,11 @@ export function PageSavedViewPicker({
 
   return (
     <div className="flex flex-wrap items-end gap-2">
+      <input type="hidden" name={queryParamName} value={activeSelectedViewId} form={formId} />
       <label className="flex min-w-56 flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
         Saved {pageLabel} view
-        <select
-          value={selectedViewId}
+        <AppSelect
+          value={activeSelectedViewId}
           onChange={(event) => onViewSelected(event.target.value)}
           className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700"
         >
@@ -105,13 +127,13 @@ export function PageSavedViewPicker({
               {option.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       </label>
       <Button
         type="button"
         variant="secondary"
         onClick={onClearView}
-        className="h-10 px-4 text-sm bg-slate-100 text-slate-800 ring-slate-300 shadow-sm hover:bg-slate-200"
+        className="h-10 border border-slate-50 px-4 text-sm bg-slate-100 text-slate-800 ring-0 shadow-sm hover:border-slate-200 hover:bg-slate-200"
       >
         Remove view from search
       </Button>

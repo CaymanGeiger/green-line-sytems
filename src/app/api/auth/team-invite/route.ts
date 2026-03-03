@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 
 import { jsonError, jsonOk } from "@/lib/api";
+import { findActiveOrganizationInviteByRawToken } from "@/lib/auth/organization-invite";
 import { checkRateLimit, getClientIp } from "@/lib/auth/rate-limit";
-import { findActiveInviteByRawToken } from "@/lib/auth/team-invite";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       return jsonError("Too many requests", 429);
     }
 
-    const invite = await findActiveInviteByRawToken(token);
+    const invite = await findActiveOrganizationInviteByRawToken(token);
     if (!invite) {
       return jsonError("Invite not found", 404);
     }
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       invite: {
         email: invite.email,
         role: invite.role,
-        team: invite.team,
+        organization: invite.organization,
         expiresAt: invite.expiresAt.toISOString(),
       },
     });

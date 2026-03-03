@@ -2,9 +2,64 @@
 
 :root {
   --font-sans:
-    "Avenir Next", "Gill Sans", "Segoe UI", "Trebuchet MS", "Helvetica Neue",
+    "Aptos", "IBM Plex Sans", "Segoe UI", "Helvetica Neue", "Trebuchet MS",
+    sans-serif;
+  --font-display:
+    "Aptos Display", "Segoe UI Variable Display", "Avenir Next Demi Bold", "Segoe UI", "Helvetica Neue", "Trebuchet MS",
     sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --app-bg: #f4f7f2;
+  --app-text: #0f172a;
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-border: #c7d1dd;
+  --surface-border-strong: #b3bfcd;
+  --control-border: #a2b1c3;
+  --text-slate-900: #0f172a;
+  --text-slate-800: #1e293b;
+  --text-slate-700: #334155;
+  --text-slate-600: #475569;
+  --text-slate-500: #64748b;
+  --hover-border-muted: #7f91a6;
+  --button-hover-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+  --surface-hover: #fbfcfd;
+  --surface-control-hover: #f8fafc;
+  --app-shell-bg: radial-gradient(circle at 10% -8%, rgba(22, 163, 74, 0.16), transparent 40%),
+    radial-gradient(circle at 92% 0%, rgba(15, 23, 42, 0.08), transparent 35%),
+    linear-gradient(180deg, #f8faf7 0%, #eef4ed 100%);
+  --auth-shell-bg: radial-gradient(circle at top, rgba(34, 197, 94, 0.2), transparent 52%),
+    linear-gradient(180deg, #f8fafc, #ecfdf5);
+  --auth-card-bg: color-mix(in srgb, #ffffff 88%, transparent);
+  --auth-card-border: color-mix(in srgb, #ffffff 70%, transparent);
+}
+
+:root[data-theme="dark"],
+:root.dark {
+  --app-bg: #071018;
+  --app-text: #e2e8f0;
+  --surface-0: #0f1b28;
+  --surface-1: #142231;
+  --surface-2: #1a2a3b;
+  --surface-border: #2b3f54;
+  --surface-border-strong: #3a526c;
+  --control-border: #506b87;
+  --text-slate-900: #e2e8f0;
+  --text-slate-800: #d7e2ee;
+  --text-slate-700: #c5d4e3;
+  --text-slate-600: #a8bed4;
+  --text-slate-500: #8ca5bf;
+  --hover-border-muted: #8aa6c2;
+  --button-hover-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.24);
+  --surface-hover: #18293a;
+  --surface-control-hover: #1d3044;
+  --app-shell-bg: radial-gradient(circle at 8% -10%, rgba(22, 163, 74, 0.22), transparent 42%),
+    radial-gradient(circle at 92% 0%, rgba(30, 41, 59, 0.5), transparent 36%),
+    linear-gradient(180deg, #0a131d 0%, #0d1621 100%);
+  --auth-shell-bg: radial-gradient(circle at top, rgba(22, 163, 74, 0.24), transparent 50%),
+    linear-gradient(180deg, #0b1420, #101c2a);
+  --auth-card-bg: color-mix(in srgb, #0f1b28 92%, transparent);
+  --auth-card-border: color-mix(in srgb, #3a526c 72%, transparent);
 }
 
 * {
@@ -13,6 +68,18 @@
 
 body {
   font-family: var(--font-sans), sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  letter-spacing: -0.017em;
+  font-weight: 650;
 }
 
 a {
@@ -27,6 +94,56 @@ button {
   font: inherit;
 }
 
+button,
+input:not([type="hidden"]),
+textarea,
+select,
+[role="button"],
+[role="combobox"],
+[role="checkbox"] {
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    color 0.16s ease;
+}
+
+button:not(:disabled),
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="range"]:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="combobox"]:not([aria-disabled="true"]),
+[role="checkbox"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(:disabled),
+textarea:not(:disabled) {
+  cursor: text;
+}
+
+input:not([type="hidden"]):not(:disabled):hover,
+textarea:not(:disabled):hover,
+select:not(:disabled):hover,
+[role="combobox"]:not([aria-disabled="true"]):hover {
+  border-color: var(--surface-border-strong);
+  background-color: var(--surface-hover);
+}
+
+input[type="checkbox"]:not(:disabled):hover,
+input[type="radio"]:not(:disabled):hover,
+[role="checkbox"]:not([aria-disabled="true"]):hover {
+  border-color: var(--hover-border-muted);
+  background-color: var(--surface-control-hover);
+}
+
+button:not(:disabled):hover,
+[role="button"]:not([aria-disabled="true"]):hover {
+  box-shadow: var(--button-hover-shadow);
+}
+
 select,
 [role="combobox"] {
   cursor: pointer;
@@ -38,5 +155,159 @@ select:disabled,
 }
 
 ::selection {
-  background: rgb(147 197 253 / 0.45);
+  background: rgb(34 197 94 / 0.24);
+}
+
+@layer utilities {
+  .app-shell-bg {
+    background: var(--app-shell-bg);
+  }
+
+  .auth-shell-bg {
+    background: var(--auth-shell-bg);
+  }
+
+  .auth-card {
+    background-color: var(--auth-card-bg);
+    border-color: var(--auth-card-border);
+  }
+
+  .panel-stroke {
+    border-color: var(--surface-border);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      0 1px 0 rgba(148, 163, 184, 0.12);
+  }
+
+  .bg-white {
+    background-color: var(--surface-0);
+  }
+
+  .bg-white\/95 {
+    background-color: color-mix(in srgb, var(--surface-0) 95%, transparent);
+  }
+
+  .bg-white\/92 {
+    background-color: color-mix(in srgb, var(--surface-0) 92%, transparent);
+  }
+
+  .bg-white\/85 {
+    background-color: color-mix(in srgb, var(--surface-0) 85%, transparent);
+  }
+
+  .bg-slate-50 {
+    background-color: var(--surface-1);
+  }
+
+  .bg-slate-50\/60 {
+    background-color: color-mix(in srgb, var(--surface-1) 60%, transparent);
+  }
+
+  .bg-slate-50\/70 {
+    background-color: color-mix(in srgb, var(--surface-1) 70%, transparent);
+  }
+
+  .bg-slate-50\/80 {
+    background-color: color-mix(in srgb, var(--surface-1) 80%, transparent);
+  }
+
+  .bg-slate-100 {
+    background-color: var(--surface-2);
+  }
+
+  .bg-slate-200 {
+    background-color: color-mix(in srgb, var(--surface-2) 68%, var(--surface-1) 32%);
+  }
+
+  .hover\:bg-slate-50:hover {
+    background-color: var(--surface-hover);
+  }
+
+  .hover\:bg-slate-100:hover {
+    background-color: var(--surface-control-hover);
+  }
+
+  .hover\:bg-slate-200:hover {
+    background-color: color-mix(in srgb, var(--surface-control-hover) 75%, var(--surface-hover) 25%);
+  }
+
+  .text-slate-900 {
+    color: var(--text-slate-900);
+  }
+
+  .text-slate-800 {
+    color: var(--text-slate-800);
+  }
+
+  .text-slate-700 {
+    color: var(--text-slate-700);
+  }
+
+  .text-slate-600 {
+    color: var(--text-slate-600);
+  }
+
+  .text-slate-500 {
+    color: var(--text-slate-500);
+  }
+
+  .hover\:text-slate-900:hover {
+    color: var(--text-slate-900);
+  }
+
+  .hover\:text-slate-800:hover {
+    color: var(--text-slate-800);
+  }
+
+  .hover\:text-slate-700:hover {
+    color: var(--text-slate-700);
+  }
+
+  .hover\:text-slate-600:hover {
+    color: var(--text-slate-600);
+  }
+
+  .border-slate-200 {
+    border-color: var(--surface-border);
+  }
+
+  .border-slate-100 {
+    border-color: color-mix(in srgb, var(--surface-border) 78%, transparent);
+  }
+
+  .border-slate-200\/90 {
+    border-color: color-mix(in srgb, var(--surface-border) 90%, transparent);
+  }
+
+  .border-slate-300 {
+    border-color: var(--control-border);
+  }
+
+  .hover\:border-slate-300:hover {
+    border-color: var(--surface-border-strong);
+  }
+
+  .hover\:border-slate-400:hover {
+    border-color: var(--hover-border-muted);
+  }
+
+  .ring-slate-300 {
+    --tw-ring-color: var(--control-border);
+  }
+
+  .rounded-md {
+    border-radius: 0.28rem;
+  }
+
+  .rounded-lg {
+    border-radius: 0.33rem;
+  }
+
+  .rounded-xl {
+    border-radius: 0.42rem;
+  }
+
+  .rounded-2xl {
+    border-radius: 0.5rem;
+  }
 }

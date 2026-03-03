@@ -66,10 +66,12 @@ export function ProfileForm({ initialName, email }: ProfileFormProps) {
           required
         />
       </label>
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      {success ? <p className="text-sm text-emerald-600">{success}</p> : null}
-      <Button type="submit" disabled={loading}>
-        {loading ? "Saving..." : "Save profile"}
+      <div className="min-h-[20px]" aria-live="polite">
+        {error ? <p className="text-xs font-semibold text-rose-600">{error}</p> : null}
+        {!error && success ? <p className="text-xs font-semibold text-green-600">{success}</p> : null}
+      </div>
+      <Button type="submit" loading={loading} loadingText="Saving..." className="h-10 px-4 text-sm">
+        Save profile
       </Button>
     </form>
   );

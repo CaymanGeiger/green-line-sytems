@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { isValidUiPreferenceKey } from "@/lib/ui-preferences";
 
@@ -20,35 +20,46 @@ type UiPreferencesProviderProps = {
 
 export function UiPreferencesProvider({ initialPreferences, children }: UiPreferencesProviderProps) {
   const [preferences, setPreferences] = useState<UiPreferencesMap>(initialPreferences);
+  const preferencesRef = useRef<UiPreferencesMap>(initialPreferences);
 
   const setPreference = useCallback((preferenceKey: string, isOpen: boolean) => {
-    if (!isValidUiPreferenceKey(preferenceKey)) {
+    const canPersist = isValidUiPreferenceKey(preferenceKey);
+    const currentValue = preferencesRef.current[preferenceKey];
+
+    if (currentValue === isOpen) {
       return;
     }
 
-    setPreferences((current) => {
-      if (current[preferenceKey] === isOpen) {
-        return current;
-      }
+    const nextPreferences = {
+      ...preferencesRef.current,
+      [preferenceKey]: isOpen,
+    };
+    preferencesRef.current = nextPreferences;
+    setPreferences(nextPreferences);
 
-      return {
-        ...current,
-        [preferenceKey]: isOpen,
-      };
-    });
+    if (!canPersist) {
+      return;
+    }
 
     void fetch("/api/account/ui-preferences", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "same-origin",
       body: JSON.stringify({
         preferenceKey,
         isOpen,
       }),
-    }).catch((error) => {
-      console.error("UI preference sync error", error);
-    });
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`UI preference sync failed with status ${response.status}`);
+        }
+      })
+      .catch((error) => {
+        console.error("UI preference sync error", error);
+      });
   }, []);
 
   const value = useMemo<UiPreferencesContextValue>(() => {
@@ -63,19 +74,22 @@ export function UiPreferencesProvider({ initialPreferences, children }: UiPrefer
 
 export function useUiBooleanPreference(preferenceKey: string, defaultValue: boolean) {
   const context = useContext(UiPreferencesContext);
-
-  if (!context) {
-    throw new Error("useUiBooleanPreference must be used within UiPreferencesProvider");
-  }
-
-  const value = preferenceKey in context.preferences ? context.preferences[preferenceKey] : defaultValue;
+  const [fallbackValue, setFallbackValue] = useState(defaultValue);
 
   const setValue = useCallback(
     (nextValue: boolean) => {
-      context.setPreference(preferenceKey, nextValue);
+      if (context) {
+        context.setPreference(preferenceKey, nextValue);
+        return;
+      }
+      setFallbackValue(nextValue);
     },
     [context, preferenceKey],
   );
+
+  const value = context
+    ? (preferenceKey in context.preferences ? context.preferences[preferenceKey] : defaultValue)
+    : fallbackValue;
 
   return [value, setValue] as const;
 }

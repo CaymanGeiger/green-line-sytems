@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 
 type FormError = string | string[] | null;
+type AccountType = "OWNER" | "EMPLOYEE";
 
 const PASSWORD_RULES = [
   "Must be at least 8 characters.",
@@ -53,6 +54,7 @@ export function SignUpForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [accountType, setAccountType] = useState<AccountType>("OWNER");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<FormError>(null);
@@ -79,7 +81,7 @@ export function SignUpForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
+        body: JSON.stringify({ name, email, accountType, password, confirmPassword }),
       });
 
       const body = await response.json().catch(() => ({}));
@@ -94,7 +96,7 @@ export function SignUpForm() {
       }
 
       setError((current) => (current ? null : current));
-      router.push("/");
+      router.push("/?welcome=1");
       router.refresh();
     } catch {
       const nextError = "Unable to create account";
@@ -116,7 +118,7 @@ export function SignUpForm() {
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
         />
       </div>
       <div>
@@ -129,9 +131,50 @@ export function SignUpForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
         />
       </div>
+      <fieldset>
+        <legend className="mb-1 block text-sm font-medium text-slate-700">I am joining as</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <label
+            className={`cursor-pointer rounded-lg border px-3 py-2 text-sm transition ${
+              accountType === "OWNER"
+                ? "border-green-600 bg-green-50 text-green-900"
+                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            <input
+              type="radio"
+              name="account-type"
+              value="OWNER"
+              className="sr-only"
+              checked={accountType === "OWNER"}
+              onChange={() => setAccountType("OWNER")}
+            />
+            <span className="block font-semibold">Company owner</span>
+            <span className="mt-1 block text-xs text-slate-500">I am setting up our workspace.</span>
+          </label>
+          <label
+            className={`cursor-pointer rounded-lg border px-3 py-2 text-sm transition ${
+              accountType === "EMPLOYEE"
+                ? "border-green-600 bg-green-50 text-green-900"
+                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            <input
+              type="radio"
+              name="account-type"
+              value="EMPLOYEE"
+              className="sr-only"
+              checked={accountType === "EMPLOYEE"}
+              onChange={() => setAccountType("EMPLOYEE")}
+            />
+            <span className="block font-semibold">Employee</span>
+            <span className="mt-1 block text-xs text-slate-500">I need an invite from my company owner.</span>
+          </label>
+        </div>
+      </fieldset>
       <div>
         <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
           Password
@@ -149,7 +192,7 @@ export function SignUpForm() {
           onChange={(event) => setConfirmPassword(event.target.value)}
         />
       </div>
-      <div className="min-h-[12px]" aria-live="polite">
+      <div className="min-h-[20px]" aria-live="polite">
         {Array.isArray(error) ? (
           <ul className="list-disc space-y-1 pl-4 text-xs font-semibold text-rose-600">
             {error.map((issue) => (
@@ -160,12 +203,12 @@ export function SignUpForm() {
           <p className="text-xs font-semibold text-rose-600">{error}</p>
         ) : null}
       </div>
-      <Button type="submit" block disabled={loading}>
-        {loading ? "Creating Account..." : "Create Account"}
+      <Button type="submit" block loading={loading} loadingText="Creating Account...">
+        Create Account
       </Button>
       <div className="text-sm text-slate-600">
         Already have an account?{" "}
-        <Link className="text-blue-700 hover:text-blue-800" href="/signin">
+        <Link className="text-green-700 hover:text-green-800" href="/signin">
           Sign in
         </Link>
       </div>

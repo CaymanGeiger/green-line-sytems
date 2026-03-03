@@ -8,7 +8,7 @@ export function FilterApplyButton({ className, ...props }: FilterApplyButtonProp
   return (
     <Button
       type="submit"
-      className={`inline-flex h-10 w-full items-center justify-center px-4 text-sm leading-none sm:w-auto ${className ?? ""}`.trim()}
+      className={`inline-flex h-10 w-full items-center justify-center border border-green-700 px-4 text-sm leading-none ring-0 sm:w-auto ${className ?? ""}`.trim()}
       {...props}
     >
       Apply
