@@ -29,66 +29,39 @@ export function LoadingSpinner({
     width: size,
     height: size,
     color,
-    animation: "dcc-circular-rotate 1.4s linear infinite",
   };
 
   const circleStyle: CSSProperties = {
     strokeDasharray: "80px, 200px",
     strokeDashoffset: 0,
-    animation: "dcc-circular-dash 1.4s ease-in-out infinite",
   };
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes dcc-circular-rotate {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes dcc-circular-dash {
-          0% {
-            stroke-dasharray: 1px, 200px;
-            stroke-dashoffset: 0;
-          }
-          50% {
-            stroke-dasharray: 100px, 200px;
-            stroke-dashoffset: -15px;
-          }
-          100% {
-            stroke-dasharray: 100px, 200px;
-            stroke-dashoffset: -125px;
-          }
-        }
-      `}</style>
-      <span
-        role="progressbar"
-        aria-label={ariaLabel}
-        className={`inline-flex shrink-0 items-center justify-center ${className ?? ""}`.trim()}
+    <span
+      role="progressbar"
+      aria-label={ariaLabel}
+      className={`inline-flex shrink-0 items-center justify-center ${className ?? ""}`.trim()}
+    >
+      <svg
+        viewBox="22 22 44 44"
+        focusable="false"
+        aria-hidden="true"
+        className="dcc-spinner-root"
+        style={rootStyle}
       >
-        <svg
-          viewBox="22 22 44 44"
-          focusable="false"
-          aria-hidden="true"
-          style={rootStyle}
-        >
-          <circle
-            cx="44"
-            cy="44"
-            r={(44 - thickness) / 2}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={thickness}
-            strokeLinecap="round"
-            style={circleStyle}
-          />
-        </svg>
-      </span>
-    </>
+        <circle
+          cx="44"
+          cy="44"
+          r={(44 - thickness) / 2}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={thickness}
+          strokeLinecap="round"
+          className="dcc-spinner-circle"
+          style={circleStyle}
+        />
+      </svg>
+    </span>
   );
 }
 
