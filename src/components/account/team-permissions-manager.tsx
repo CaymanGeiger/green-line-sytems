@@ -227,10 +227,10 @@ export function TeamPermissionsManager({
                   setError(null);
                   setSuccess(null);
                 }}
-                className={`w-full min-w-0 rounded-xl border px-3 py-2 text-left transition ${
+                className={`w-full min-w-0 rounded-xl border px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600/30 ${
                   selected
-                    ? "border-green-300 bg-green-50/70"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    ? "border-green-500/50 bg-white shadow-[inset_0_0_0_1px_rgba(22,163,74,0.14)]"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-100"
                 }`}
               >
                 <p className="break-words text-sm font-semibold text-slate-900">{member.name}</p>
