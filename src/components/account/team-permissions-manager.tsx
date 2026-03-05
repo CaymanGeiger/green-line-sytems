@@ -213,8 +213,8 @@ export function TeamPermissionsManager({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <section className="space-y-2">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <section className="min-w-0 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Team members</p>
           {members.map((member) => {
             const selected = member.userId === selectedUserId;
@@ -227,14 +227,14 @@ export function TeamPermissionsManager({
                   setError(null);
                   setSuccess(null);
                 }}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                className={`w-full min-w-0 rounded-xl border px-3 py-2 text-left transition ${
                   selected
                     ? "border-green-300 bg-green-50/70"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
-                <p className="text-sm font-semibold text-slate-900">{member.name}</p>
-                <p className="text-xs text-slate-500">{member.email}</p>
+                <p className="break-words text-sm font-semibold text-slate-900">{member.name}</p>
+                <p className="break-all text-xs text-slate-500">{member.email}</p>
                 <span
                   className={`mt-2 inline-flex rounded px-2 py-1 text-[11px] font-semibold ${
                     member.role === "TEAM_ADMIN"
@@ -268,7 +268,7 @@ export function TeamPermissionsManager({
           ) : null}
         </section>
 
-        <section className="space-y-3 lg:pt-6">
+        <section className="min-w-0 space-y-3 lg:pt-6">
           {selectedMember ? (
             <>
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -307,8 +307,8 @@ export function TeamPermissionsManager({
                     </label>
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                    <table className="w-full min-w-[760px] text-left text-sm">
+                  <div className="max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                    <table className="w-full min-w-[640px] text-left text-sm md:min-w-[760px]">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
                           <th className="px-3 py-2 md:px-4">Feature</th>

@@ -49,10 +49,10 @@
   --text-slate-700: #c5d4e3;
   --text-slate-600: #a8bed4;
   --text-slate-500: #8ca5bf;
-  --hover-border-muted: #8aa6c2;
-  --button-hover-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.24);
-  --surface-hover: #18293a;
-  --surface-control-hover: #1d3044;
+  --hover-border-muted: #6d8197;
+  --button-hover-shadow: inset 0 0 0 1px rgba(71, 85, 105, 0.34);
+  --surface-hover: #132131;
+  --surface-control-hover: #172636;
   --app-shell-bg: radial-gradient(circle at 8% -10%, rgba(22, 163, 74, 0.22), transparent 42%),
     radial-gradient(circle at 92% 0%, rgba(30, 41, 59, 0.5), transparent 36%),
     linear-gradient(180deg, #0a131d 0%, #0d1621 100%);
