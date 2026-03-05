@@ -78,4 +78,15 @@ describe("rate limit", () => {
     });
     expect(getClientIp(request)).toBe("8.8.8.8");
   });
+
+  it("fails open when backing storage errors", async () => {
+    prismaMock.$transaction.mockRejectedValueOnce(new Error("no such table: ApiRateLimitBucket"));
+
+    const result = await checkRateLimit({ key: "auth:1", limit: 5, windowMs: 60_000 });
+    expect(result).toEqual({
+      allowed: true,
+      remaining: 5,
+      retryAfterMs: 0,
+    });
+  });
 });

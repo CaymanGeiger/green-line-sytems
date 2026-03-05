@@ -15,71 +15,84 @@ type CheckRateLimitOptions = {
 export async function checkRateLimit(options: CheckRateLimitOptions): Promise<RateLimitResult> {
   const now = new Date();
 
-  return prisma.$transaction(async (tx) => {
-    const existing = await tx.apiRateLimitBucket.findUnique({
-      where: { key: options.key },
-    });
-
-    if (!existing) {
-      await tx.apiRateLimitBucket.create({
-        data: {
-          key: options.key,
-          windowStart: now,
-          count: 1,
-        },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.apiRateLimitBucket.findUnique({
+        where: { key: options.key },
       });
 
-      return {
-        allowed: true,
-        remaining: Math.max(0, options.limit - 1),
-        retryAfterMs: 0,
-      };
-    }
+      if (!existing) {
+        await tx.apiRateLimitBucket.create({
+          data: {
+            key: options.key,
+            windowStart: now,
+            count: 1,
+          },
+        });
 
-    const elapsedMs = now.getTime() - existing.windowStart.getTime();
+        return {
+          allowed: true,
+          remaining: Math.max(0, options.limit - 1),
+          retryAfterMs: 0,
+        };
+      }
 
-    if (elapsedMs >= options.windowMs) {
-      await tx.apiRateLimitBucket.update({
+      const elapsedMs = now.getTime() - existing.windowStart.getTime();
+
+      if (elapsedMs >= options.windowMs) {
+        await tx.apiRateLimitBucket.update({
+          where: { key: options.key },
+          data: {
+            windowStart: now,
+            count: 1,
+          },
+        });
+
+        return {
+          allowed: true,
+          remaining: Math.max(0, options.limit - 1),
+          retryAfterMs: 0,
+        };
+      }
+
+      if (existing.count >= options.limit) {
+        return {
+          allowed: false,
+          remaining: 0,
+          retryAfterMs: options.windowMs - elapsedMs,
+        };
+      }
+
+      const updated = await tx.apiRateLimitBucket.update({
         where: { key: options.key },
         data: {
-          windowStart: now,
-          count: 1,
+          count: {
+            increment: 1,
+          },
+        },
+        select: {
+          count: true,
         },
       });
 
       return {
         allowed: true,
-        remaining: Math.max(0, options.limit - 1),
+        remaining: Math.max(0, options.limit - updated.count),
         retryAfterMs: 0,
       };
-    }
-
-    if (existing.count >= options.limit) {
-      return {
-        allowed: false,
-        remaining: 0,
-        retryAfterMs: options.windowMs - elapsedMs,
-      };
-    }
-
-    const updated = await tx.apiRateLimitBucket.update({
-      where: { key: options.key },
-      data: {
-        count: {
-          increment: 1,
-        },
-      },
-      select: {
-        count: true,
-      },
+    });
+  } catch (error) {
+    console.error("Rate limit storage unavailable, allowing request", {
+      key: options.key,
+      error,
     });
 
     return {
       allowed: true,
-      remaining: Math.max(0, options.limit - updated.count),
+      remaining: options.limit,
       retryAfterMs: 0,
     };
-  });
+  }
 }
 
 export function getClientIp(request: Request): string {
