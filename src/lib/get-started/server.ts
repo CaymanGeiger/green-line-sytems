@@ -1,6 +1,21 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import type { GetStartedSnapshot } from "@/lib/get-started/shared";
 import { buildEmployeeAccessRequestShareLink } from "@/lib/auth/employee-access-request-link";
+
+type GetStartedSnapshotRow = {
+  hasAdditionalMember: number | boolean;
+  hasPendingInvite: number | boolean;
+  hasPendingAccessGrant: number | boolean;
+  hasIncident: number | boolean;
+  hasRunbook: number | boolean;
+  hasSimulatorTelemetry: number | boolean;
+};
+
+function toBoolean(value: number | boolean | null | undefined): boolean {
+  return value === true || value === 1;
+}
 
 export async function getGetStartedSnapshot(
   userId: string,
@@ -13,105 +28,90 @@ export async function getGetStartedSnapshot(
   const now = new Date();
   const normalizedEmail = userEmail.trim().toLowerCase();
 
-  const [additionalMember, pendingInvite, pendingAccessGrant, incident, runbook, simulatorLog] = await Promise.all([
-      organizationIds.length > 0
-        ? prisma.organizationMembership.findFirst({
-            where: {
-              organizationId: {
-                in: organizationIds,
-              },
-              userId: {
-                not: userId,
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
-      organizationIds.length > 0
-        ? prisma.organizationInvite.findFirst({
-            where: {
-              organizationId: {
-                in: organizationIds,
-              },
-              consumedAt: null,
-              expiresAt: {
-                gt: now,
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : normalizedEmail
-          ? prisma.organizationInvite.findFirst({
-              where: {
-                email: normalizedEmail,
-                consumedAt: null,
-                expiresAt: {
-                  gt: now,
-                },
-              },
-              select: {
-                id: true,
-              },
-            })
-          : Promise.resolve(null),
-      normalizedEmail
-        ? prisma.employeeAccessGrantInvite.findFirst({
-            where: {
-              email: normalizedEmail,
-              consumedAt: null,
-              expiresAt: {
-                gt: now,
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
-      teamIds.length > 0
-        ? prisma.incident.findFirst({
-            where: {
-              teamId: {
-                in: teamIds,
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
-      teamIds.length > 0
-        ? prisma.runbook.findFirst({
-            where: {
-              teamId: {
-                in: teamIds,
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
-      teamIds.length > 0
-        ? prisma.logEvent.findFirst({
-            where: {
-              simulated: true,
-              service: {
-                teamId: {
-                  in: teamIds,
-                },
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
-  ]);
+  const additionalMemberExistsSql =
+    organizationIds.length > 0
+      ? Prisma.sql`EXISTS (
+          SELECT 1
+          FROM "OrganizationMembership" AS om
+          WHERE om."organizationId" IN (${Prisma.join(organizationIds)})
+            AND om."userId" <> ${userId}
+          LIMIT 1
+        )`
+      : Prisma.sql`0`;
+
+  const pendingInviteExistsSql =
+    organizationIds.length > 0
+      ? Prisma.sql`EXISTS (
+          SELECT 1
+          FROM "OrganizationInvite" AS oi
+          WHERE oi."organizationId" IN (${Prisma.join(organizationIds)})
+            AND oi."consumedAt" IS NULL
+            AND oi."expiresAt" > ${now}
+          LIMIT 1
+        )`
+      : normalizedEmail
+        ? Prisma.sql`EXISTS (
+            SELECT 1
+            FROM "OrganizationInvite" AS oi
+            WHERE oi."email" = ${normalizedEmail}
+              AND oi."consumedAt" IS NULL
+              AND oi."expiresAt" > ${now}
+            LIMIT 1
+          )`
+        : Prisma.sql`0`;
+
+  const pendingAccessGrantExistsSql = normalizedEmail
+    ? Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "EmployeeAccessGrantInvite" AS eigi
+        WHERE eigi."email" = ${normalizedEmail}
+          AND eigi."consumedAt" IS NULL
+          AND eigi."expiresAt" > ${now}
+        LIMIT 1
+      )`
+    : Prisma.sql`0`;
+
+  const incidentExistsSql =
+    teamIds.length > 0
+      ? Prisma.sql`EXISTS (
+          SELECT 1
+          FROM "Incident" AS i
+          WHERE i."teamId" IN (${Prisma.join(teamIds)})
+          LIMIT 1
+        )`
+      : Prisma.sql`0`;
+
+  const runbookExistsSql =
+    teamIds.length > 0
+      ? Prisma.sql`EXISTS (
+          SELECT 1
+          FROM "Runbook" AS r
+          WHERE r."teamId" IN (${Prisma.join(teamIds)})
+          LIMIT 1
+        )`
+      : Prisma.sql`0`;
+
+  const simulatorTelemetryExistsSql =
+    teamIds.length > 0
+      ? Prisma.sql`EXISTS (
+          SELECT 1
+          FROM "LogEvent" AS le
+          INNER JOIN "Service" AS s ON s."id" = le."serviceId"
+          WHERE le."simulated" = 1
+            AND s."teamId" IN (${Prisma.join(teamIds)})
+          LIMIT 1
+        )`
+      : Prisma.sql`0`;
+
+  const [snapshot] = await prisma.$queryRaw<GetStartedSnapshotRow[]>(Prisma.sql`
+    SELECT
+      ${additionalMemberExistsSql} AS "hasAdditionalMember",
+      ${pendingInviteExistsSql} AS "hasPendingInvite",
+      ${pendingAccessGrantExistsSql} AS "hasPendingAccessGrant",
+      ${incidentExistsSql} AS "hasIncident",
+      ${runbookExistsSql} AS "hasRunbook",
+      ${simulatorTelemetryExistsSql} AS "hasSimulatorTelemetry"
+  `);
 
   const mode =
     userRole === "ADMIN" || hasManageableOrganization ? "OWNER_SETUP" : "EMPLOYEE_JOIN";
@@ -124,11 +124,11 @@ export async function getGetStartedSnapshot(
     mode,
     organizationsCount: organizationIds.length,
     teamsCount: teamIds.length,
-    hasAdditionalMember: Boolean(additionalMember),
-    hasPendingInvite: Boolean(pendingInvite) || Boolean(pendingAccessGrant),
-    hasSimulatorTelemetry: Boolean(simulatorLog),
-    hasIncident: Boolean(incident),
-    hasRunbook: Boolean(runbook),
+    hasAdditionalMember: toBoolean(snapshot?.hasAdditionalMember),
+    hasPendingInvite: toBoolean(snapshot?.hasPendingInvite) || toBoolean(snapshot?.hasPendingAccessGrant),
+    hasSimulatorTelemetry: toBoolean(snapshot?.hasSimulatorTelemetry),
+    hasIncident: toBoolean(snapshot?.hasIncident),
+    hasRunbook: toBoolean(snapshot?.hasRunbook),
     employeeAccessRequestLink,
   };
 }

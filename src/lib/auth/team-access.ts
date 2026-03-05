@@ -19,8 +19,13 @@ export type AccessibleTeam = {
   isDirectMember: boolean;
 };
 
-export async function getAccessibleOrganizations(userId: string): Promise<AccessibleOrganization[]> {
-  const memberships = await prisma.organizationMembership.findMany({
+type AccessibleContext = {
+  organizations: AccessibleOrganization[];
+  teams: AccessibleTeam[];
+};
+
+export async function getAccessibleContext(userId: string): Promise<AccessibleContext> {
+  const organizationMemberships = await prisma.organizationMembership.findMany({
     where: {
       userId,
     },
@@ -41,12 +46,95 @@ export async function getAccessibleOrganizations(userId: string): Promise<Access
     },
   });
 
-  return memberships.map((membership) => ({
+  const organizations = organizationMemberships.map((membership) => ({
     id: membership.organization.id,
     name: membership.organization.name,
     slug: membership.organization.slug,
     role: membership.role,
   }));
+
+  const organizationRoleById = new Map<string, AccessibleOrganization["role"]>();
+  organizations.forEach((organization) => {
+    organizationRoleById.set(organization.id, organization.role);
+  });
+
+  const manageableOrganizationIds = organizations
+    .filter((organization) => organization.role === "OWNER" || organization.role === "ADMIN")
+    .map((organization) => organization.id);
+
+  const teamAccessWhere =
+    manageableOrganizationIds.length > 0
+      ? {
+          OR: [
+            {
+              memberships: {
+                some: {
+                  userId,
+                },
+              },
+            },
+            {
+              organizationId: {
+                in: manageableOrganizationIds,
+              },
+            },
+          ],
+        }
+      : {
+          memberships: {
+            some: {
+              userId,
+            },
+          },
+        };
+
+  const teams = await prisma.team.findMany({
+    where: teamAccessWhere,
+    orderBy: {
+      name: "asc",
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      organizationId: true,
+      organization: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+      memberships: {
+        where: {
+          userId,
+        },
+        take: 1,
+        select: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  return {
+    organizations,
+    teams: teams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      slug: team.slug,
+      organizationId: team.organizationId,
+      organizationName: team.organization.name,
+      organizationSlug: team.organization.slug,
+      organizationRole: organizationRoleById.get(team.organizationId) ?? null,
+      membershipRole: team.memberships[0]?.role ?? "MEMBER",
+      isDirectMember: team.memberships.length > 0,
+    })),
+  };
+}
+
+export async function getAccessibleOrganizations(userId: string): Promise<AccessibleOrganization[]> {
+  const { organizations } = await getAccessibleContext(userId);
+  return organizations;
 }
 
 export async function getManageableOrganizations(userId: string): Promise<AccessibleOrganization[]> {
@@ -89,112 +177,8 @@ export async function isOrganizationOwner(userId: string, organizationId: string
 }
 
 export async function getAccessibleTeams(userId: string): Promise<AccessibleTeam[]> {
-  const [teamMemberships, manageableOrganizations] = await Promise.all([
-    prisma.teamMembership.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        team: {
-          name: "asc",
-        },
-      },
-      select: {
-        role: true,
-        team: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            organizationId: true,
-            organization: {
-              select: {
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-    prisma.organizationMembership.findMany({
-      where: {
-        userId,
-        role: {
-          in: ["OWNER", "ADMIN"],
-        },
-      },
-      select: {
-        organizationId: true,
-        role: true,
-      },
-    }),
-  ]);
-
-  const teamsById = new Map<string, AccessibleTeam>();
-
-  teamMemberships.forEach((membership) => {
-    teamsById.set(membership.team.id, {
-      id: membership.team.id,
-      name: membership.team.name,
-      slug: membership.team.slug,
-      organizationId: membership.team.organizationId,
-      organizationName: membership.team.organization.name,
-      organizationSlug: membership.team.organization.slug,
-      organizationRole: manageableOrganizations.find((organization) => organization.organizationId === membership.team.organizationId)?.role ?? null,
-      membershipRole: membership.role,
-      isDirectMember: true,
-    });
-  });
-
-  const manageableOrganizationIds = manageableOrganizations.map((organization) => organization.organizationId);
-  if (manageableOrganizationIds.length === 0) {
-    return [...teamsById.values()];
-  }
-
-  const orgTeams = await prisma.team.findMany({
-    where: {
-      organizationId: {
-        in: manageableOrganizationIds,
-      },
-    },
-    orderBy: {
-      name: "asc",
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      organizationId: true,
-      organization: {
-        select: {
-          name: true,
-          slug: true,
-        },
-      },
-    },
-  });
-
-  orgTeams.forEach((team) => {
-    if (teamsById.has(team.id)) {
-      return;
-    }
-
-    const organizationRole = manageableOrganizations.find((organization) => organization.organizationId === team.organizationId)?.role ?? null;
-    teamsById.set(team.id, {
-      id: team.id,
-      name: team.name,
-      slug: team.slug,
-      organizationId: team.organizationId,
-      organizationName: team.organization.name,
-      organizationSlug: team.organization.slug,
-      organizationRole,
-      membershipRole: "MEMBER",
-      isDirectMember: false,
-    });
-  });
-
-  return [...teamsById.values()].sort((left, right) => left.name.localeCompare(right.name));
+  const { teams } = await getAccessibleContext(userId);
+  return teams;
 }
 
 export async function getAccessibleTeamIds(userId: string): Promise<string[]> {

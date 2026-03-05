@@ -2,8 +2,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 
 import {
-  getAccessibleOrganizations,
-  getAccessibleTeams,
+  getAccessibleContext,
   type AccessibleOrganization,
   type AccessibleTeam,
 } from "@/lib/auth/team-access";
@@ -32,7 +31,7 @@ export function pickActiveTeamId(teamIds: string[], candidate?: string | null): 
 }
 
 const getActiveTeamContextCached = cache(async (userId: string): Promise<ActiveTeamContext> => {
-  const [teams, organizations] = await Promise.all([getAccessibleTeams(userId), getAccessibleOrganizations(userId)]);
+  const { teams, organizations } = await getAccessibleContext(userId);
   const teamIds = teams.map((team) => team.id);
   const cookieStore = await cookies();
   const cookieTeamId = cookieStore.get(ACTIVE_TEAM_COOKIE_NAME)?.value ?? null;
