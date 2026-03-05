@@ -1,4 +1,5 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@prisma/client";
 
 declare global {
@@ -7,13 +8,43 @@ declare global {
 
 let prismaSingleton: PrismaClient | undefined = global.__prisma;
 
+function shouldUseTurso(databaseUrl: string | undefined): boolean {
+  if (process.env.TURSO_DATABASE_URL) {
+    return true;
+  }
+
+  if (databaseUrl?.startsWith("libsql://") || databaseUrl?.startsWith("https://")) {
+    return true;
+  }
+
+  return false;
+}
+
 function createPrismaClient(): PrismaClient {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (shouldUseTurso(databaseUrl)) {
+    const url = process.env.TURSO_DATABASE_URL ?? databaseUrl;
+    if (!url) {
+      throw new Error("TURSO_DATABASE_URL or DATABASE_URL (libsql/https) must be configured");
+    }
+
+    const adapter = new PrismaLibSql({
+      url,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    });
+  }
+
+  if (!databaseUrl) {
     throw new Error("DATABASE_URL is not configured");
   }
 
-  const adapter = new PrismaBetterSqlite3({ url });
+  const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
 
   return new PrismaClient({
     adapter,
