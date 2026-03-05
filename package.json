@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run prisma:generate && next build --webpack",
+    "build": "npm run prisma:generate && NODE_ENV=production next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
@@ -17,10 +17,12 @@
     "metrics:recompute": "node --env-file=.env --import tsx scripts/recompute-metrics.ts",
     "db:backfill-simulated": "node --env-file=.env --import tsx scripts/backfill-simulated.ts",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "db:push:turso": "bash scripts/copy-dev-to-turso.sh"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.2",
+    "@prisma/adapter-libsql": "^7.4.2",
     "@prisma/client": "^7.4.2",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
