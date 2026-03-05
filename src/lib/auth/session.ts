@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { NextResponse } from "next/server";
 
+import { env } from "@/lib/env";
+
 export const SESSION_COOKIE_NAME = "dcc_session";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7;
 const SESSION_TOKEN_VERSION = "v1";
@@ -30,11 +32,7 @@ type SessionTokenPayload = {
 };
 
 function getSessionSecret(): string {
-  const secret = process.env.AUTH_JWT_SECRET ?? "";
-  if (secret.length < 32) {
-    throw new Error("AUTH_JWT_SECRET must be set and at least 32 characters.");
-  }
-  return secret;
+  return env.AUTH_JWT_SECRET;
 }
 
 function signPayload(encodedPayload: string): string {

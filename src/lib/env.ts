@@ -11,6 +11,25 @@ function requireMinLength(name: string, minLength: number, label?: string): stri
   return value;
 }
 
+function resolveAuthJwtSecret(): string {
+  const candidates = [
+    process.env.AUTH_JWT_SECRET,
+    process.env.SESSION_SECRET,
+    process.env.JWT_SECRET,
+    process.env.NEXTAUTH_SECRET,
+    process.env.TURSO_AUTH_TOKEN,
+  ];
+
+  const secret = candidates.find((candidate) => (candidate ?? "").length >= 32);
+  if (!secret) {
+    throw new Error(
+      "AUTH_JWT_SECRET must be set and at least 32 characters (or provide SESSION_SECRET/JWT_SECRET/NEXTAUTH_SECRET).",
+    );
+  }
+
+  return secret;
+}
+
 function requireNonEmpty(name: string): string {
   const value = process.env[name] ?? "";
   if (!value) {
@@ -39,7 +58,7 @@ export const env = {
     return requireNonEmpty("DATABASE_URL");
   },
   get AUTH_JWT_SECRET(): string {
-    return requireMinLength("AUTH_JWT_SECRET", 32, "AUTH_JWT_SECRET must be at least 32 characters");
+    return resolveAuthJwtSecret();
   },
   get INTERNAL_SYNC_TOKEN(): string {
     return requireMinLength("INTERNAL_SYNC_TOKEN", 16, "INTERNAL_SYNC_TOKEN must be at least 16 characters");

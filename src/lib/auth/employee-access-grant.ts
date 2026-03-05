@@ -1,16 +1,12 @@
 import crypto from "node:crypto";
 
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 export const EMPLOYEE_ACCESS_GRANT_TTL_HOURS = 72;
 
 function getInviteSecret() {
-  const secret = process.env.AUTH_JWT_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("AUTH_JWT_SECRET must be set and at least 32 characters.");
-  }
-
-  return secret;
+  return env.AUTH_JWT_SECRET;
 }
 
 export function generateEmployeeAccessGrantToken(): string {
@@ -51,4 +47,3 @@ export async function findActiveEmployeeAccessGrantByRawToken(rawToken: string) 
     },
   });
 }
-
