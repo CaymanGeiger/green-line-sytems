@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { TeamSwitcher } from "@/components/team-switcher";
 
 type NavLinkItem = {
   href: string;
@@ -11,6 +14,13 @@ type NavLinkItem = {
 
 type NavLinksProps = {
   showAdmin: boolean;
+  teams: Array<{
+    id: string;
+    name: string;
+    organizationName?: string;
+  }>;
+  activeTeamId: string | null;
+  mobileLeading?: ReactNode;
 };
 
 const DIRECT_LINKS: NavLinkItem[] = [
@@ -111,7 +121,12 @@ function MobileNavGroup({
   );
 }
 
-export function NavLinks({ showAdmin }: NavLinksProps) {
+export function NavLinks({
+  showAdmin,
+  teams,
+  activeTeamId,
+  mobileLeading,
+}: NavLinksProps) {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<"operations" | "admin" | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -144,39 +159,52 @@ export function NavLinks({ showAdmin }: NavLinksProps) {
     };
   }, []);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   return (
     <>
-      <div className="flex items-center justify-end md:hidden">
-        <button
-          type="button"
-          aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
-          onClick={() => setMobileOpen((current) => !current)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
-        >
-          <span className="sr-only">{mobileOpen ? "Close navigation" : "Open navigation"}</span>
-          <span aria-hidden className="relative block h-3.5 w-4">
-            <span
-              className={`absolute left-0 top-0 h-0.5 w-4 rounded bg-current transition-transform duration-200 ${
-                mobileOpen ? "translate-y-[6px] rotate-45" : ""
-              }`}
-            />
-            <span
-              className={`absolute left-0 top-[6px] h-0.5 w-4 rounded bg-current transition-opacity duration-200 ${
-                mobileOpen ? "opacity-0" : "opacity-100"
-              }`}
-            />
-            <span
-              className={`absolute left-0 top-3 h-0.5 w-4 rounded bg-current transition-transform duration-200 ${
-                mobileOpen ? "translate-y-[-6px] -rotate-45" : ""
-              }`}
-            />
-          </span>
-        </button>
+      <div className="relative md:hidden">
+        <div className="flex items-center justify-end gap-2">
+          <div className="shrink-0">{mobileLeading ?? null}</div>
+          <button
+            type="button"
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            onClick={() => setMobileOpen((current) => !current)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+          >
+            <span className="sr-only">{mobileOpen ? "Close navigation" : "Open navigation"}</span>
+            <span aria-hidden className="relative block h-3.5 w-4">
+              <span
+                className={`absolute left-0 top-0 h-0.5 w-4 rounded bg-current transition-transform duration-200 ${
+                  mobileOpen ? "translate-y-[6px] rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-[6px] h-0.5 w-4 rounded bg-current transition-opacity duration-200 ${
+                  mobileOpen ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-3 h-0.5 w-4 rounded bg-current transition-transform duration-200 ${
+                  mobileOpen ? "translate-y-[-6px] -rotate-45" : ""
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+
       </div>
 
       {mobileOpen ? (
-        <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2 md:hidden">
+        <div className="absolute right-0 z-50 mt-2 w-[min(92vw,24rem)] space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2 shadow-xl shadow-slate-900/10">
+          <section className="rounded-lg border border-slate-200 bg-white p-2">
+            <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Active team</p>
+            <TeamSwitcher teams={teams} activeTeamId={activeTeamId} className="w-full self-auto" />
+          </section>
+
           {DIRECT_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (

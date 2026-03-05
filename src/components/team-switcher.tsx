@@ -13,9 +13,11 @@ type TeamOption = {
 export function TeamSwitcher({
   teams,
   activeTeamId,
+  className,
 }: {
   teams: TeamOption[];
   activeTeamId: string | null;
+  className?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -72,7 +74,10 @@ export function TeamSwitcher({
   }
 
   return (
-    <label className="group relative inline-block max-w-full self-end" style={{ width: `min(100%, ${controlWidthCh}ch)` }}>
+    <label
+      className={`group relative inline-block max-w-full self-end ${className ?? ""}`.trim()}
+      style={{ width: `min(100%, ${controlWidthCh}ch)` }}
+    >
       <span className="sr-only">Active team</span>
       <span
         aria-hidden
