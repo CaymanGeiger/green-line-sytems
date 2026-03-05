@@ -6,7 +6,7 @@ import { AccordionCard } from "@/components/ui/accordion-card";
 import { Badge } from "@/components/ui/badge";
 import { FilterApplyButton } from "@/components/ui/filter-apply-button";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
@@ -35,9 +35,9 @@ export default async function RunbooksPage({
     );
   }
 
-  const [canViewRunbooks, canCreateRunbooks] = await Promise.all([
-    canUserPerformTeamAction(user.id, activeTeamId, "RUNBOOK", "VIEW"),
-    canUserPerformTeamAction(user.id, activeTeamId, "RUNBOOK", "CREATE"),
+  const [canViewRunbooks, canCreateRunbooks] = await canUserPerformTeamActions(user.id, activeTeamId, [
+    { resource: "RUNBOOK", action: "VIEW" },
+    { resource: "RUNBOOK", action: "CREATE" },
   ]);
   if (!canViewRunbooks) {
     return (

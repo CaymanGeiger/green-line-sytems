@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { EditRunbookForm } from "@/components/runbooks/edit-runbook-form";
 import { Card } from "@/components/ui/card";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
@@ -39,9 +39,9 @@ export default async function RunbookDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const [canViewRunbook, canUpdateRunbook] = await Promise.all([
-    canUserPerformTeamAction(user.id, runbook.teamId, "RUNBOOK", "VIEW"),
-    canUserPerformTeamAction(user.id, runbook.teamId, "RUNBOOK", "UPDATE"),
+  const [canViewRunbook, canUpdateRunbook] = await canUserPerformTeamActions(user.id, runbook.teamId, [
+    { resource: "RUNBOOK", action: "VIEW" },
+    { resource: "RUNBOOK", action: "UPDATE" },
   ]);
 
   if (!canViewRunbook) {

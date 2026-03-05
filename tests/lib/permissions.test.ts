@@ -7,15 +7,12 @@ const { prismaMock } = vi.hoisted(() => ({
       findMany: vi.fn(),
     },
     teamMembership: {
-      findUnique: vi.fn(),
       findMany: vi.fn(),
     },
     organizationMembership: {
-      findUnique: vi.fn(),
       findMany: vi.fn(),
     },
     teamPermission: {
-      findUnique: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -26,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import {
+  canUserPerformTeamActions,
   canUserPerformTeamAction,
   getTeamIdsForPermission,
 } from "@/lib/auth/permissions";
@@ -36,9 +34,13 @@ describe("team permissions", () => {
   });
 
   it("grants owners all actions", async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({ organizationId: "org_1" });
-    prismaMock.teamMembership.findUnique.mockResolvedValueOnce({ role: "OWNER" });
-    prismaMock.organizationMembership.findUnique.mockResolvedValueOnce({ role: "MEMBER" });
+    prismaMock.team.findUnique.mockResolvedValueOnce({
+      memberships: [{ role: "OWNER" }],
+      permissions: [],
+      organization: {
+        memberships: [{ role: "MEMBER" }],
+      },
+    });
 
     await expect(
       canUserPerformTeamAction("user_1", "team_1", "INCIDENT", "DELETE"),
@@ -46,9 +48,13 @@ describe("team permissions", () => {
   });
 
   it("grants org admins organization-managed resources", async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({ organizationId: "org_1" });
-    prismaMock.teamMembership.findUnique.mockResolvedValueOnce(null);
-    prismaMock.organizationMembership.findUnique.mockResolvedValueOnce({ role: "ADMIN" });
+    prismaMock.team.findUnique.mockResolvedValueOnce({
+      memberships: [],
+      permissions: [],
+      organization: {
+        memberships: [{ role: "ADMIN" }],
+      },
+    });
 
     await expect(
       canUserPerformTeamAction("user_1", "team_1", "TEAM_PERMISSION", "UPDATE"),
@@ -56,14 +62,34 @@ describe("team permissions", () => {
   });
 
   it("respects member overrides", async () => {
-    prismaMock.team.findUnique.mockResolvedValueOnce({ organizationId: "org_1" });
-    prismaMock.teamMembership.findUnique.mockResolvedValueOnce({ role: "MEMBER" });
-    prismaMock.organizationMembership.findUnique.mockResolvedValueOnce({ role: "MEMBER" });
-    prismaMock.teamPermission.findUnique.mockResolvedValueOnce({ allowed: false });
+    prismaMock.team.findUnique.mockResolvedValueOnce({
+      memberships: [{ role: "MEMBER" }],
+      permissions: [{ resource: "INCIDENT", action: "VIEW", allowed: false }],
+      organization: {
+        memberships: [{ role: "MEMBER" }],
+      },
+    });
 
     await expect(
       canUserPerformTeamAction("user_1", "team_1", "INCIDENT", "VIEW"),
     ).resolves.toBe(false);
+  });
+
+  it("evaluates multiple actions from one team access snapshot", async () => {
+    prismaMock.team.findUnique.mockResolvedValueOnce({
+      memberships: [{ role: "MEMBER" }],
+      permissions: [{ resource: "INCIDENT", action: "CREATE", allowed: true }],
+      organization: {
+        memberships: [{ role: "MEMBER" }],
+      },
+    });
+
+    await expect(
+      canUserPerformTeamActions("user_1", "team_1", [
+        { resource: "INCIDENT", action: "VIEW" },
+        { resource: "INCIDENT", action: "CREATE" },
+      ]),
+    ).resolves.toEqual([true, true]);
   });
 
   it("returns scoped team ids for view permissions", async () => {

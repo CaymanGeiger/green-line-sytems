@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import {
   getAccessibleOrganizations,
@@ -30,7 +31,7 @@ export function pickActiveTeamId(teamIds: string[], candidate?: string | null): 
   return teamIds[0] ?? null;
 }
 
-export async function getActiveTeamContext(userId: string): Promise<ActiveTeamContext> {
+const getActiveTeamContextCached = cache(async (userId: string): Promise<ActiveTeamContext> => {
   const [teams, organizations] = await Promise.all([getAccessibleTeams(userId), getAccessibleOrganizations(userId)]);
   const teamIds = teams.map((team) => team.id);
   const cookieStore = await cookies();
@@ -48,4 +49,8 @@ export async function getActiveTeamContext(userId: string): Promise<ActiveTeamCo
     activeTeamId,
     activeTeam,
   };
+});
+
+export async function getActiveTeamContext(userId: string): Promise<ActiveTeamContext> {
+  return getActiveTeamContextCached(userId);
 }

@@ -4,7 +4,7 @@ import { AccordionCard } from "@/components/ui/accordion-card";
 import { FilterApplyButton } from "@/components/ui/filter-apply-button";
 import { getActionItemsPageData, type SearchParams } from "@/lib/action-items/page-data";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 
 export default async function ActionItemsPage({
@@ -28,12 +28,13 @@ export default async function ActionItemsPage({
     );
   }
 
-  const [canViewActionItems, canCreateActionItems, canUpdateActionItems, canDeleteActionItems] = await Promise.all([
-    canUserPerformTeamAction(user.id, activeTeamId, "ACTION_ITEM", "VIEW"),
-    canUserPerformTeamAction(user.id, activeTeamId, "ACTION_ITEM", "CREATE"),
-    canUserPerformTeamAction(user.id, activeTeamId, "ACTION_ITEM", "UPDATE"),
-    canUserPerformTeamAction(user.id, activeTeamId, "ACTION_ITEM", "DELETE"),
-  ]);
+  const [canViewActionItems, canCreateActionItems, canUpdateActionItems, canDeleteActionItems] =
+    await canUserPerformTeamActions(user.id, activeTeamId, [
+      { resource: "ACTION_ITEM", action: "VIEW" },
+      { resource: "ACTION_ITEM", action: "CREATE" },
+      { resource: "ACTION_ITEM", action: "UPDATE" },
+      { resource: "ACTION_ITEM", action: "DELETE" },
+    ]);
 
   if (!canViewActionItems) {
     return (

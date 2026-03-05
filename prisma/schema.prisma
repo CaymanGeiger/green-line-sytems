@@ -349,6 +349,9 @@ model Incident {
   @@index([teamId])
   @@index([serviceId])
   @@index([simulated])
+  @@index([teamId, simulated, startedAt])
+  @@index([teamId, simulated, status, startedAt])
+  @@index([teamId, simulated, severity, startedAt])
 }
 
 model IncidentAssignee {
@@ -401,6 +404,9 @@ model DeployEvent {
   @@index([startedAt])
   @@index([status])
   @@index([simulated])
+  @@index([serviceId, simulated, createdAt])
+  @@index([environmentId, simulated, createdAt])
+  @@index([simulated, createdAt])
 }
 
 model ErrorEvent {
@@ -521,6 +527,7 @@ model ActionItem {
   ownerUser   User?            @relation("ActionItemOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([dueDate, status])
+  @@index([postmortemId])
 }
 
 model IntegrationCredential {
@@ -583,6 +590,7 @@ model SavedView {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope])
+  @@index([userId, scope, updatedAt])
 }
 
 model UiPreference {

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   description: "Production-minded SaaS for incident command, reliability, and postmortems.",
 };
 
+export const runtime = "nodejs";
+export const preferredRegion = "iad1";
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const cookieStore = await cookies();
   const initialTheme = normalizeTheme(cookieStore.get(THEME_COOKIE_NAME)?.value);

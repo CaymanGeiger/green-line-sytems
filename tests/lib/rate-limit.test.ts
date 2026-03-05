@@ -1,15 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { txMock, prismaMock } = vi.hoisted(() => ({
-  txMock: {
-    apiRateLimitBucket: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-    },
-  },
+const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
-    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
   },
 }));
 
@@ -22,14 +15,15 @@ import { checkRateLimit, getClientIp } from "@/lib/auth/rate-limit";
 describe("rate limit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof txMock) => Promise<unknown>) =>
-      callback(txMock),
-    );
   });
 
   it("creates a new bucket when one does not exist", async () => {
-    txMock.apiRateLimitBucket.findUnique.mockResolvedValueOnce(null);
-    txMock.apiRateLimitBucket.create.mockResolvedValueOnce({});
+    prismaMock.$queryRaw.mockResolvedValueOnce([
+      {
+        windowStart: new Date(),
+        count: 1,
+      },
+    ]);
 
     const result = await checkRateLimit({ key: "auth:1", limit: 5, windowMs: 60_000 });
     expect(result).toEqual({
@@ -41,11 +35,12 @@ describe("rate limit", () => {
 
   it("rejects when bucket count is over limit within window", async () => {
     const now = Date.now();
-    txMock.apiRateLimitBucket.findUnique.mockResolvedValueOnce({
-      key: "auth:1",
-      windowStart: new Date(now - 5_000),
-      count: 5,
-    });
+    prismaMock.$queryRaw.mockResolvedValueOnce([
+      {
+        windowStart: new Date(now - 5_000),
+        count: 6,
+      },
+    ]);
 
     const result = await checkRateLimit({ key: "auth:1", limit: 5, windowMs: 60_000 });
     expect(result.allowed).toBe(false);
@@ -54,13 +49,12 @@ describe("rate limit", () => {
   });
 
   it("increments bucket count when within limit", async () => {
-    const now = Date.now();
-    txMock.apiRateLimitBucket.findUnique.mockResolvedValueOnce({
-      key: "auth:1",
-      windowStart: new Date(now - 3_000),
-      count: 2,
-    });
-    txMock.apiRateLimitBucket.update.mockResolvedValueOnce({ count: 3 });
+    prismaMock.$queryRaw.mockResolvedValueOnce([
+      {
+        windowStart: new Date(Date.now() - 3_000),
+        count: 3,
+      },
+    ]);
 
     const result = await checkRateLimit({ key: "auth:1", limit: 5, windowMs: 60_000 });
     expect(result).toEqual({
@@ -80,7 +74,7 @@ describe("rate limit", () => {
   });
 
   it("fails open when backing storage errors", async () => {
-    prismaMock.$transaction.mockRejectedValueOnce(new Error("no such table: ApiRateLimitBucket"));
+    prismaMock.$queryRaw.mockRejectedValueOnce(new Error("no such table: ApiRateLimitBucket"));
 
     const result = await checkRateLimit({ key: "auth:1", limit: 5, windowMs: 60_000 });
     expect(result).toEqual({

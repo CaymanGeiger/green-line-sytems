@@ -48,11 +48,16 @@ export async function enforceMutationProtection(
   keyPrefix: string,
   limit = 60,
   windowMs = 60_000,
+  options: { skipRateLimit?: boolean } = {},
 ): Promise<NextResponse | null> {
   try {
     assertCsrf(request);
   } catch {
     return jsonError("Invalid request", 403);
+  }
+
+  if (options.skipRateLimit) {
+    return null;
   }
 
   const ip = getClientIp(request);

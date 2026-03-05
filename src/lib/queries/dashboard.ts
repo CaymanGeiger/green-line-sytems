@@ -63,9 +63,7 @@ const getCachedMetrics = unstable_cache(
     const { incidentWhere, deployWhere, errorWhere } = buildWhere(filters);
 
     const [
-      openIncidents,
-      sev1Count,
-      sev2Count,
+      openIncidentCountsBySeverity,
       deploysToday,
       errorSpikes,
       activeIncidents,
@@ -73,9 +71,13 @@ const getCachedMetrics = unstable_cache(
       recentErrors,
       mttaAndMttrRows,
     ] = await Promise.all([
-      prisma.incident.count({ where: { ...incidentWhere, status: { not: "RESOLVED" } } }),
-      prisma.incident.count({ where: { ...incidentWhere, severity: "SEV1", status: { not: "RESOLVED" } } }),
-      prisma.incident.count({ where: { ...incidentWhere, severity: "SEV2", status: { not: "RESOLVED" } } }),
+      prisma.incident.groupBy({
+        by: ["severity"],
+        where: { ...incidentWhere, status: { not: "RESOLVED" } },
+        _count: {
+          _all: true,
+        },
+      }),
       prisma.deployEvent.count({
         where: {
           ...deployWhere,
@@ -182,6 +184,10 @@ const getCachedMetrics = unstable_cache(
         },
       }),
     ]);
+
+    const openIncidents = openIncidentCountsBySeverity.reduce((sum, row) => sum + row._count._all, 0);
+    const sev1Count = openIncidentCountsBySeverity.find((row) => row.severity === "SEV1")?._count._all ?? 0;
+    const sev2Count = openIncidentCountsBySeverity.find((row) => row.severity === "SEV2")?._count._all ?? 0;
 
     const mttaRows = mttaAndMttrRows.map((row) =>
       computeMttaMinutes(row.detectedAt, row.acknowledgedAt),

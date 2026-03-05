@@ -4,7 +4,7 @@ import { AccordionCard } from "@/components/ui/accordion-card";
 import { Card } from "@/components/ui/card";
 import { PERMISSION_ACTIONS, PERMISSION_RESOURCE_DEFINITIONS } from "@/lib/auth/permission-metadata";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -35,9 +35,9 @@ export default async function PermissionsPage({
   const teamAccess = (
     await Promise.all(
       teams.map(async (team) => {
-        const [canView, canUpdate] = await Promise.all([
-          canUserPerformTeamAction(user.id, team.id, "TEAM_PERMISSION", "VIEW"),
-          canUserPerformTeamAction(user.id, team.id, "TEAM_PERMISSION", "UPDATE"),
+        const [canView, canUpdate] = await canUserPerformTeamActions(user.id, team.id, [
+          { resource: "TEAM_PERMISSION", action: "VIEW" },
+          { resource: "TEAM_PERMISSION", action: "UPDATE" },
         ]);
         return {
           team,

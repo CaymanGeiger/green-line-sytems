@@ -1,7 +1,19 @@
-import bcrypt from "bcryptjs";
+import { compare as compareWithNativeBcrypt, hash as hashWithNativeBcrypt } from "@node-rs/bcrypt";
+import bcryptjs from "bcryptjs";
 
 const SPECIAL_CHAR_REGEX = /[!?@#$]/;
 const UPPERCASE_REGEX = /[A-Z]/;
+const PASSWORD_HASH_ROUNDS = 12;
+let warnedNativeFallback = false;
+
+function warnNativeFallback(error: unknown) {
+  if (warnedNativeFallback) {
+    return;
+  }
+
+  warnedNativeFallback = true;
+  console.warn("Native bcrypt unavailable, falling back to bcryptjs", error);
+}
 
 export type PasswordValidation = {
   valid: boolean;
@@ -33,9 +45,19 @@ export function validatePasswordPolicy(password: string): PasswordValidation {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+  try {
+    return await hashWithNativeBcrypt(password, PASSWORD_HASH_ROUNDS);
+  } catch (error) {
+    warnNativeFallback(error);
+    return bcryptjs.hash(password, PASSWORD_HASH_ROUNDS);
+  }
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  try {
+    return await compareWithNativeBcrypt(password, hash);
+  } catch (error) {
+    warnNativeFallback(error);
+    return bcryptjs.compare(password, hash);
+  }
 }

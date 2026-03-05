@@ -4,38 +4,16 @@ import { buildEmployeeAccessRequestShareLink } from "@/lib/auth/employee-access-
 
 export async function getGetStartedSnapshot(
   userId: string,
+  userEmail: string,
   userRole: "ADMIN" | "IC" | "ENGINEER" | "VIEWER",
+  hasManageableOrganization: boolean,
   organizationIds: string[],
   teamIds: string[],
 ): Promise<GetStartedSnapshot> {
   const now = new Date();
-  const userForInviteLookup = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-    select: {
-      email: true,
-    },
-  });
+  const normalizedEmail = userEmail.trim().toLowerCase();
 
-  const [manageableOrgMembership, additionalMember, pendingInvite, pendingAccessGrant, incident, runbook, simulatorLog] =
-    await Promise.all([
-      organizationIds.length > 0
-        ? prisma.organizationMembership.findFirst({
-            where: {
-              userId,
-              organizationId: {
-                in: organizationIds,
-              },
-              role: {
-                in: ["OWNER", "ADMIN"],
-              },
-            },
-            select: {
-              id: true,
-            },
-          })
-        : Promise.resolve(null),
+  const [additionalMember, pendingInvite, pendingAccessGrant, incident, runbook, simulatorLog] = await Promise.all([
       organizationIds.length > 0
         ? prisma.organizationMembership.findFirst({
             where: {
@@ -66,10 +44,10 @@ export async function getGetStartedSnapshot(
               id: true,
             },
           })
-        : userForInviteLookup?.email
+        : normalizedEmail
           ? prisma.organizationInvite.findFirst({
               where: {
-                email: userForInviteLookup.email.toLowerCase(),
+                email: normalizedEmail,
                 consumedAt: null,
                 expiresAt: {
                   gt: now,
@@ -80,10 +58,10 @@ export async function getGetStartedSnapshot(
               },
             })
           : Promise.resolve(null),
-      userForInviteLookup?.email
+      normalizedEmail
         ? prisma.employeeAccessGrantInvite.findFirst({
             where: {
-              email: userForInviteLookup.email.toLowerCase(),
+              email: normalizedEmail,
               consumedAt: null,
               expiresAt: {
                 gt: now,
@@ -133,13 +111,13 @@ export async function getGetStartedSnapshot(
             },
           })
         : Promise.resolve(null),
-    ]);
+  ]);
 
   const mode =
-    userRole === "ADMIN" || Boolean(manageableOrgMembership) ? "OWNER_SETUP" : "EMPLOYEE_JOIN";
+    userRole === "ADMIN" || hasManageableOrganization ? "OWNER_SETUP" : "EMPLOYEE_JOIN";
   const employeeAccessRequestLink =
-    mode === "EMPLOYEE_JOIN" && userForInviteLookup?.email
-      ? buildEmployeeAccessRequestShareLink(userId, userForInviteLookup.email)
+    mode === "EMPLOYEE_JOIN" && normalizedEmail
+      ? buildEmployeeAccessRequestShareLink(userId, normalizedEmail)
       : null;
 
   return {

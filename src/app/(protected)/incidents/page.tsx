@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { FilterApplyButton } from "@/components/ui/filter-apply-button";
 import { SimulationOnlyToggle } from "@/components/ui/simulation-only-toggle";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { withParam, type SearchParams, getIncidentsPageData } from "@/lib/incidents/page-data";
 import { incidentSeverityTone, incidentStatusTone } from "@/lib/presentation";
@@ -31,9 +31,9 @@ export default async function IncidentsPage({
     );
   }
 
-  const [canViewIncidents, canCreateIncidents] = await Promise.all([
-    canUserPerformTeamAction(user.id, activeTeamId, "INCIDENT", "VIEW"),
-    canUserPerformTeamAction(user.id, activeTeamId, "INCIDENT", "CREATE"),
+  const [canViewIncidents, canCreateIncidents] = await canUserPerformTeamActions(user.id, activeTeamId, [
+    { resource: "INCIDENT", action: "VIEW" },
+    { resource: "INCIDENT", action: "CREATE" },
   ]);
 
   if (!canViewIncidents) {

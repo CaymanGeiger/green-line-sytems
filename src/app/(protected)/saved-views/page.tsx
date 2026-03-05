@@ -6,7 +6,7 @@ import { AccordionCard } from "@/components/ui/accordion-card";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/utils";
@@ -71,11 +71,15 @@ export default async function SavedViewsPage() {
     );
   }
 
-  const [canViewSavedViews, canCreateSavedViews, canDeleteSavedViews] = await Promise.all([
-    canUserPerformTeamAction(user.id, activeTeamId, "SAVED_VIEW", "VIEW"),
-    canUserPerformTeamAction(user.id, activeTeamId, "SAVED_VIEW", "CREATE"),
-    canUserPerformTeamAction(user.id, activeTeamId, "SAVED_VIEW", "DELETE"),
-  ]);
+  const [canViewSavedViews, canCreateSavedViews, canDeleteSavedViews] = await canUserPerformTeamActions(
+    user.id,
+    activeTeamId,
+    [
+      { resource: "SAVED_VIEW", action: "VIEW" },
+      { resource: "SAVED_VIEW", action: "CREATE" },
+      { resource: "SAVED_VIEW", action: "DELETE" },
+    ],
+  );
   if (!canViewSavedViews) {
     return (
       <Card title="Saved Views">

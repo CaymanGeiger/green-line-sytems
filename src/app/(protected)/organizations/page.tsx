@@ -6,7 +6,7 @@ import {
 import { type TeamRecord } from "@/components/account/team-members-manager";
 import { AccordionCard } from "@/components/ui/accordion-card";
 import { PERMISSION_ACTIONS, PERMISSION_RESOURCE_DEFINITIONS } from "@/lib/auth/permission-metadata";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { getAccessibleTeams } from "@/lib/auth/team-access";
 import { prisma } from "@/lib/prisma";
@@ -173,10 +173,10 @@ export default async function OrganizationsPage({
   const canManageByTeamId = new Map(
     await Promise.all(
       teamsWithMembers.map(async (team) => {
-        const [canCreate, canUpdate, canDelete] = await Promise.all([
-          canUserPerformTeamAction(user.id, team.id, "TEAM_MEMBER", "CREATE"),
-          canUserPerformTeamAction(user.id, team.id, "TEAM_MEMBER", "UPDATE"),
-          canUserPerformTeamAction(user.id, team.id, "TEAM_MEMBER", "DELETE"),
+        const [canCreate, canUpdate, canDelete] = await canUserPerformTeamActions(user.id, team.id, [
+          { resource: "TEAM_MEMBER", action: "CREATE" },
+          { resource: "TEAM_MEMBER", action: "UPDATE" },
+          { resource: "TEAM_MEMBER", action: "DELETE" },
         ]);
         return [team.id, canCreate || canUpdate || canDelete] as const;
       }),

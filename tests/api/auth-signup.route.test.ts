@@ -125,6 +125,8 @@ describe("POST /api/auth/signup", () => {
       email: "user@example.com",
       name: "User Name",
       role: "ENGINEER",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     });
 
     const request = new NextRequest("http://localhost:3000/api/auth/signup", {
@@ -151,7 +153,14 @@ describe("POST /api/auth/signup", () => {
     });
 
     expect(prismaMock.user.create).toHaveBeenCalled();
-    expect(createSessionMock).toHaveBeenCalledWith("ck1234567890123456789012");
+    expect(createSessionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "ck1234567890123456789012",
+        email: "user@example.com",
+        name: "User Name",
+        role: "ENGINEER",
+      }),
+    );
     expect(attachSessionCookieMock).toHaveBeenCalledWith(
       expect.any(NextResponse),
       "session_token",

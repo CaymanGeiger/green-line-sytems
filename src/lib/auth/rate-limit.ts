@@ -14,73 +14,45 @@ type CheckRateLimitOptions = {
 
 export async function checkRateLimit(options: CheckRateLimitOptions): Promise<RateLimitResult> {
   const now = new Date();
+  const nowIso = now.toISOString();
 
   try {
-    return await prisma.$transaction(async (tx) => {
-      const existing = await tx.apiRateLimitBucket.findUnique({
-        where: { key: options.key },
-      });
+    const rows = await prisma.$queryRaw<Array<{ windowStart: Date | string; count: number }>>`
+      INSERT INTO "ApiRateLimitBucket" ("key", "windowStart", "count", "updatedAt")
+      VALUES (${options.key}, ${nowIso}, 1, ${nowIso})
+      ON CONFLICT("key") DO UPDATE SET
+        "windowStart" = CASE
+          WHEN (julianday(${nowIso}) - julianday("ApiRateLimitBucket"."windowStart")) * 86400000 >= ${options.windowMs}
+            THEN ${nowIso}
+          ELSE "ApiRateLimitBucket"."windowStart"
+        END,
+        "count" = CASE
+          WHEN (julianday(${nowIso}) - julianday("ApiRateLimitBucket"."windowStart")) * 86400000 >= ${options.windowMs}
+            THEN 1
+          ELSE MIN("ApiRateLimitBucket"."count" + 1, ${options.limit + 1})
+        END,
+        "updatedAt" = ${nowIso}
+      RETURNING "windowStart", "count"
+    `;
 
-      if (!existing) {
-        await tx.apiRateLimitBucket.create({
-          data: {
-            key: options.key,
-            windowStart: now,
-            count: 1,
-          },
-        });
-
-        return {
-          allowed: true,
-          remaining: Math.max(0, options.limit - 1),
-          retryAfterMs: 0,
-        };
-      }
-
-      const elapsedMs = now.getTime() - existing.windowStart.getTime();
-
-      if (elapsedMs >= options.windowMs) {
-        await tx.apiRateLimitBucket.update({
-          where: { key: options.key },
-          data: {
-            windowStart: now,
-            count: 1,
-          },
-        });
-
-        return {
-          allowed: true,
-          remaining: Math.max(0, options.limit - 1),
-          retryAfterMs: 0,
-        };
-      }
-
-      if (existing.count >= options.limit) {
-        return {
-          allowed: false,
-          remaining: 0,
-          retryAfterMs: options.windowMs - elapsedMs,
-        };
-      }
-
-      const updated = await tx.apiRateLimitBucket.update({
-        where: { key: options.key },
-        data: {
-          count: {
-            increment: 1,
-          },
-        },
-        select: {
-          count: true,
-        },
-      });
-
+    const row = rows[0];
+    if (!row) {
       return {
         allowed: true,
-        remaining: Math.max(0, options.limit - updated.count),
+        remaining: options.limit,
         retryAfterMs: 0,
       };
-    });
+    }
+
+    const windowStart = new Date(row.windowStart);
+    const elapsedMs = Math.max(0, now.getTime() - windowStart.getTime());
+    const allowed = row.count <= options.limit;
+
+    return {
+      allowed,
+      remaining: allowed ? Math.max(0, options.limit - row.count) : 0,
+      retryAfterMs: allowed ? 0 : Math.max(0, options.windowMs - elapsedMs),
+    };
   } catch (error) {
     console.error("Rate limit storage unavailable, allowing request", {
       key: options.key,

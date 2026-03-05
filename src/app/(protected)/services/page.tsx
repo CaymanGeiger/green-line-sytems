@@ -68,15 +68,16 @@ export default async function ServicesPage({
           name: true,
         },
       },
-      incidents: {
-        where: {
-          simulated: showSimulation,
-          status: {
-            not: "RESOLVED",
-          },
-        },
+      _count: {
         select: {
-          id: true,
+          incidents: {
+            where: {
+              simulated: showSimulation,
+              status: {
+                not: "RESOLVED",
+              },
+            },
+          },
         },
       },
       deployEvents: {
@@ -136,7 +137,7 @@ export default async function ServicesPage({
                 </p>
                 <div className="mt-3 grid gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 text-sm">
                   <p>
-                    <span className="font-semibold text-slate-900">Open incidents:</span> {service.incidents.length}
+                    <span className="font-semibold text-slate-900">Open incidents:</span> {service._count.incidents}
                   </p>
                   <p>
                     <span className="font-semibold text-slate-900">Last deploy:</span>{" "}

@@ -21,6 +21,7 @@
     "db:push:turso": "bash scripts/copy-dev-to-turso.sh"
   },
   "dependencies": {
+    "@node-rs/bcrypt": "^1.10.7",
     "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-libsql": "^7.4.2",
     "@prisma/client": "^7.4.2",

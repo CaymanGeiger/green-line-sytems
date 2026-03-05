@@ -5,7 +5,7 @@ import { IncidentDetailActions } from "@/components/incidents/incident-detail-ac
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { alertSeverityTone, alertStatusTone, deployStatusTone, incidentSeverityTone, incidentStatusTone } from "@/lib/presentation";
 import { prisma } from "@/lib/prisma";
@@ -81,11 +81,15 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     notFound();
   }
 
-  const [canViewIncident, canUpdateIncident, canUpdatePostmortem] = await Promise.all([
-    canUserPerformTeamAction(user.id, incident.teamId, "INCIDENT", "VIEW"),
-    canUserPerformTeamAction(user.id, incident.teamId, "INCIDENT", "UPDATE"),
-    canUserPerformTeamAction(user.id, incident.teamId, "POSTMORTEM", "UPDATE"),
-  ]);
+  const [canViewIncident, canUpdateIncident, canUpdatePostmortem] = await canUserPerformTeamActions(
+    user.id,
+    incident.teamId,
+    [
+      { resource: "INCIDENT", action: "VIEW" },
+      { resource: "INCIDENT", action: "UPDATE" },
+      { resource: "POSTMORTEM", action: "UPDATE" },
+    ],
+  );
 
   if (!canViewIncident) {
     notFound();

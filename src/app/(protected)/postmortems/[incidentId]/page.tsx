@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PostmortemEditor } from "@/components/postmortems/postmortem-editor";
 import { Card } from "@/components/ui/card";
 import { getActiveTeamContext } from "@/lib/auth/active-team";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
@@ -40,9 +40,9 @@ export default async function PostmortemDetailPage({
     notFound();
   }
 
-  const [canViewPostmortem, canUpdatePostmortem] = await Promise.all([
-    canUserPerformTeamAction(user.id, incident.teamId, "POSTMORTEM", "VIEW"),
-    canUserPerformTeamAction(user.id, incident.teamId, "POSTMORTEM", "UPDATE"),
+  const [canViewPostmortem, canUpdatePostmortem] = await canUserPerformTeamActions(user.id, incident.teamId, [
+    { resource: "POSTMORTEM", action: "VIEW" },
+    { resource: "POSTMORTEM", action: "UPDATE" },
   ]);
 
   if (!canViewPostmortem) {

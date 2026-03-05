@@ -99,4 +99,17 @@ describe("api helpers", () => {
     expect(result?.status).toBe(429);
     expect(result?.headers.get("Retry-After")).toBe("3");
   });
+
+  it("can skip rate limit checks while still enforcing csrf", async () => {
+    const result = await enforceMutationProtection(
+      new Request("http://localhost:3000/api/x", { method: "POST" }),
+      "auth:signin",
+      35,
+      60_000,
+      { skipRateLimit: true },
+    );
+
+    expect(result).toBeNull();
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+  });
 });

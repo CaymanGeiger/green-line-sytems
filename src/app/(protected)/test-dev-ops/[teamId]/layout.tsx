@@ -6,7 +6,7 @@ import { ServiceNav } from "@/components/test-dev-ops/service-nav";
 import { TelemetryFeed } from "@/components/test-dev-ops/telemetry-feed";
 import { TestDevOpsProvider } from "@/components/test-dev-ops/test-devops-provider";
 import { Card } from "@/components/ui/card";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { ensureTeamSimulationServices } from "@/lib/test-dev-ops-server";
@@ -20,12 +20,13 @@ export default async function TestDevOpsTeamLayout({
 }) {
   const user = await requireCurrentUser();
   const { teamId } = await params;
-  const [canViewSimulator, canCreateSimulator, canUpdateSimulator, canDeleteSimulator] = await Promise.all([
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "VIEW"),
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "CREATE"),
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "UPDATE"),
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "DELETE"),
-  ]);
+  const [canViewSimulator, canCreateSimulator, canUpdateSimulator, canDeleteSimulator] =
+    await canUserPerformTeamActions(user.id, teamId, [
+      { resource: "SIMULATOR", action: "VIEW" },
+      { resource: "SIMULATOR", action: "CREATE" },
+      { resource: "SIMULATOR", action: "UPDATE" },
+      { resource: "SIMULATOR", action: "DELETE" },
+    ]);
 
   if (!canViewSimulator) {
     notFound();

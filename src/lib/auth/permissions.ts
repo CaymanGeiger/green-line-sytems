@@ -34,84 +34,125 @@ export function defaultPermissionForRole(
   return defaultPermissionByMembershipRole(role, resource, action);
 }
 
+type TeamAccessSnapshot = {
+  organizationRole: "OWNER" | "ADMIN" | "MEMBER" | null;
+  membershipRole: TeamMembershipRole | null;
+  overrideMap: Map<string, boolean>;
+};
+
+export type TeamPermissionCheck = {
+  resource: PermissionResource;
+  action: PermissionAction;
+};
+
+function permissionKey(resource: PermissionResource, action: PermissionAction): string {
+  return `${resource}:${action}`;
+}
+
+function resolveTeamPermission(snapshot: TeamAccessSnapshot | null, resource: PermissionResource, action: PermissionAction): boolean {
+  if (!snapshot) {
+    return false;
+  }
+
+  const isOrganizationAdmin = snapshot.organizationRole === "OWNER" || snapshot.organizationRole === "ADMIN";
+  if (isOrganizationAdmin) {
+    return true;
+  }
+
+  if (!snapshot.membershipRole) {
+    return false;
+  }
+
+  if (snapshot.membershipRole === "OWNER") {
+    return true;
+  }
+
+  const override = snapshot.overrideMap.get(permissionKey(resource, action));
+  if (typeof override === "boolean") {
+    return override;
+  }
+
+  return defaultPermissionForRole(snapshot.membershipRole, resource, action);
+}
+
+async function getTeamAccessSnapshot(userId: string, teamId: string): Promise<TeamAccessSnapshot | null> {
+  const teamAccess = await prisma.team.findUnique({
+    where: {
+      id: teamId,
+    },
+    select: {
+      memberships: {
+        where: {
+          userId,
+        },
+        take: 1,
+        select: {
+          role: true,
+        },
+      },
+      permissions: {
+        where: {
+          userId,
+        },
+        select: {
+          resource: true,
+          action: true,
+          allowed: true,
+        },
+      },
+      organization: {
+        select: {
+          memberships: {
+            where: {
+              userId,
+            },
+            take: 1,
+            select: {
+              role: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!teamAccess) {
+    return null;
+  }
+
+  const overrideMap = new Map<string, boolean>();
+  teamAccess.permissions.forEach((permission) => {
+    overrideMap.set(permissionKey(permission.resource, permission.action), permission.allowed);
+  });
+
+  return {
+    organizationRole: teamAccess.organization.memberships[0]?.role ?? null,
+    membershipRole: teamAccess.memberships[0]?.role ?? null,
+    overrideMap,
+  };
+}
+
+export async function canUserPerformTeamActions(
+  userId: string,
+  teamId: string,
+  checks: TeamPermissionCheck[],
+): Promise<boolean[]> {
+  if (checks.length === 0) {
+    return [];
+  }
+
+  const snapshot = await getTeamAccessSnapshot(userId, teamId);
+  return checks.map((check) => resolveTeamPermission(snapshot, check.resource, check.action));
+}
+
 export async function canUserPerformTeamAction(
   userId: string,
   teamId: string,
   resource: PermissionResource,
   action: PermissionAction,
 ): Promise<boolean> {
-  const [teamScope, membership] = await Promise.all([
-    prisma.team.findUnique({
-      where: {
-        id: teamId,
-      },
-      select: {
-        organizationId: true,
-      },
-    }),
-    prisma.teamMembership.findUnique({
-      where: {
-        userId_teamId: {
-          userId,
-          teamId,
-        },
-      },
-      select: {
-        role: true,
-      },
-    }),
-  ]);
-
-  if (!teamScope) {
-    return false;
-  }
-
-  const organizationMembership = await prisma.organizationMembership.findUnique({
-    where: {
-      userId_organizationId: {
-        userId,
-        organizationId: teamScope.organizationId,
-      },
-    },
-    select: {
-      role: true,
-    },
-  });
-
-  const isOrganizationAdmin =
-    organizationMembership?.role === "OWNER" || organizationMembership?.role === "ADMIN";
-
-  if (isOrganizationAdmin) {
-    return true;
-  }
-
-  if (!membership) {
-    return false;
-  }
-
-  if (membership.role === "OWNER") {
-    return true;
-  }
-
-  const override = await prisma.teamPermission.findUnique({
-    where: {
-      teamId_userId_resource_action: {
-        teamId,
-        userId,
-        resource,
-        action,
-      },
-    },
-    select: {
-      allowed: true,
-    },
-  });
-
-  if (override) {
-    return override.allowed;
-  }
-
-  return defaultPermissionForRole(membership.role, resource, action);
+  const [allowed] = await canUserPerformTeamActions(userId, teamId, [{ resource, action }]);
+  return allowed ?? false;
 }
 
 export async function getTeamIdsForPermission(

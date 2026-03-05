@@ -8,7 +8,9 @@ import { prisma } from "@/lib/prisma";
 import { signInSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
-  const protectionError = await enforceMutationProtection(request, "auth:signin", 35, 60_000);
+  const protectionError = await enforceMutationProtection(request, "auth:signin", 35, 60_000, {
+    skipRateLimit: true,
+  });
   if (protectionError) {
     return protectionError;
   }
@@ -24,27 +26,25 @@ export async function POST(request: NextRequest) {
     const email = parsed.data.email.trim().toLowerCase();
     const ip = getClientIp(request);
 
-    const emailRate = await checkRateLimit({
-      key: `auth:signin:email:${email}`,
-      limit: 20,
-      windowMs: 300_000,
-    });
+    const [emailRate, ipRate, user] = await Promise.all([
+      checkRateLimit({
+        key: `auth:signin:email:${email}`,
+        limit: 20,
+        windowMs: 300_000,
+      }),
+      checkRateLimit({
+        key: `auth:signin:ip:${ip}`,
+        limit: 120,
+        windowMs: 300_000,
+      }),
+      prisma.user.findUnique({
+        where: { email },
+      }),
+    ]);
 
-    if (!emailRate.allowed) {
+    if (!emailRate.allowed || !ipRate.allowed) {
       return jsonError("Too many requests", 429);
     }
-
-    const ipRate = await checkRateLimit({
-      key: `auth:signin:ip:${ip}`,
-      limit: 120,
-      windowMs: 300_000,
-    });
-
-    if (!ipRate.allowed) {
-      return jsonError("Too many requests", 429);
-    }
-
-    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       return jsonError("Invalid credentials", 401);
@@ -56,7 +56,14 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid credentials", 401);
     }
 
-    const { token, expiresAt } = await createSession(user.id);
+    const { token, expiresAt } = await createSession({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
     const response = NextResponse.json(
       {
         user: {

@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
           email: true,
           name: true,
           role: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
 
@@ -142,8 +144,18 @@ export async function POST(request: NextRequest) {
       return createdUser;
     });
 
-    const { token, expiresAt } = await createSession(user.id);
-    const response = NextResponse.json({ user }, { status: 201 });
+    const { token, expiresAt } = await createSession(user);
+    const response = NextResponse.json(
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      },
+      { status: 201 },
+    );
     attachSessionCookie(response, token, expiresAt);
     return response;
   } catch (error) {

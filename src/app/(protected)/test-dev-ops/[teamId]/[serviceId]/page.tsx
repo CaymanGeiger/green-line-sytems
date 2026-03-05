@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ServiceSimulator } from "@/components/test-dev-ops/service-simulator";
 import { Card } from "@/components/ui/card";
-import { canUserPerformTeamAction } from "@/lib/auth/permissions";
+import { canUserPerformTeamActions } from "@/lib/auth/permissions";
 import { requireCurrentUser } from "@/lib/auth/session";
 import { SIMULATOR_ACTIONS, toSimulatorKind } from "@/lib/test-dev-ops";
 import { prisma } from "@/lib/prisma";
@@ -15,9 +15,9 @@ export default async function TestDevOpsServicePage({
 }) {
   const user = await requireCurrentUser();
   const { teamId, serviceId } = await params;
-  const [canAccessTeam, canSimulate] = await Promise.all([
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "VIEW"),
-    canUserPerformTeamAction(user.id, teamId, "SIMULATOR", "CREATE"),
+  const [canAccessTeam, canSimulate] = await canUserPerformTeamActions(user.id, teamId, [
+    { resource: "SIMULATOR", action: "VIEW" },
+    { resource: "SIMULATOR", action: "CREATE" },
   ]);
 
   if (!canAccessTeam) {
