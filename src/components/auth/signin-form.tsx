@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -19,9 +19,12 @@ export function SignInForm({
   const [password, setPassword] = useState("password");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, startRedirectTransition] = useTransition();
+  const isBusy = loading || isRedirecting;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
     setLoading(true);
 
     try {
@@ -38,16 +41,17 @@ export function SignInForm({
       if (!response.ok) {
         const nextError = body.error ?? "Unable to sign in";
         setError((current) => (current === nextError ? current : nextError));
+        setLoading(false);
         return;
       }
 
-      setError((current) => (current ? null : current));
-      router.push("/");
-      router.refresh();
+      startRedirectTransition(() => {
+        router.push("/");
+        router.refresh();
+      });
     } catch {
       const nextError = "Unable to sign in";
       setError((current) => (current === nextError ? current : nextError));
-    } finally {
       setLoading(false);
     }
   }
@@ -87,7 +91,7 @@ export function SignInForm({
       <div className="min-h-[20px]" aria-live="polite">
         {error ? <p className="text-xs font-semibold text-rose-600">{error}</p> : null}
       </div>
-      <Button type="submit" block loading={loading} loadingText="Signing In...">
+      <Button type="submit" block loading={isBusy} loadingText="Signing In...">
         Sign In
       </Button>
       <div className="flex justify-between text-sm text-slate-600">
